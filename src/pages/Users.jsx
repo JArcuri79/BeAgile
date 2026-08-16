@@ -2,11 +2,24 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { authClient } from '../lib/auth-client';
+import { useAuth } from '../contexts/AuthContext';
 
 const ROLES = ['superuser', 'admin', 'crew', 'user'];
+const ROLE_LABELS = {
+  superuser: 'global admin',
+  admin: 'admin',
+  crew: 'crew',
+  user: 'user',
+};
+
+const formatRole = (r) => ROLE_LABELS[r] || r;
 
 const Users = () => {
+  const { role: myRole, currentUser } = useAuth();
+  const isGlobalAdmin = myRole === 'global_admin';
+
   const [users, setUsers] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -15,6 +28,12 @@ const Users = () => {
   const [actioning, setActioning] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [confirmText, setConfirmText] = useState('');
+
+  const fetchJson = async (url, opts = {}) => {
+    const res = await fetch(url, { credentials: 'include', ...opts });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json().catch(() => ({}));
+  };
 
   const load = async () => {
     setLoading(true);
@@ -29,8 +48,18 @@ const Users = () => {
     }
   };
 
+  const loadCompanies = async () => {
+    try {
+      const data = await fetchJson('/api/companies');
+      setCompanies(data.companies || []);
+    } catch (err) {
+      setCompanies([]);
+    }
+  };
+
   useEffect(() => {
     load();
+    loadCompanies();
   }, []);
 
   const filteredUsers = useMemo(() => {
@@ -49,25 +78,33 @@ const Users = () => {
       });
   }, [users, searchQuery, sortBy]);
 
+  const companyOptions = useMemo(() => {
+    if (isGlobalAdmin) return companies;
+    return companies.filter((c) => c.id === currentUser?.company);
+  }, [companies, isGlobalAdmin, currentUser]);
+
+  const companyName = (companyId) => {
+    const found = companies.find((c) => c.id === companyId);
+    return found?.name || companyId || '-';
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!editing) return;
     setActioning('save');
     try {
+      const payload = {
+        userId: editing.id,
+        data: { name: editing.name, role: editing.role, company: editing.company },
+      };
       if (authClient.admin.updateUser) {
-        await authClient.admin.updateUser({
-          userId: editing.id,
-          data: { name: editing.name, role: editing.role },
-        });
+        await authClient.admin.updateUser(payload);
       } else {
         await fetch('/api/auth/admin/update-user', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
-          body: JSON.stringify({
-            userId: editing.id,
-            data: { name: editing.name, role: editing.role },
-          }),
+          body: JSON.stringify(payload),
         });
       }
       await load();
@@ -117,6 +154,16 @@ const Users = () => {
   };
 
   const removeUser = (user) => startDelete(user);
+
+  const startEdit = (user) => {
+    setEditing({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      company: user.company || '',
+    });
+  };
 
   return (
     <div className="w-full p-10 space-y-10 bg-[var(--bg-main)] min-h-screen">
@@ -181,11 +228,11 @@ const Users = () => {
                   <p className="text-sm font-bold text-[var(--text-muted)]">{user.email}</p>
                 </td>
                 <td className="p-6">
-                  <p className="text-sm font-bold text-[var(--text-muted)]">{user.company || '-'}</p>
+                  <p className="text-sm font-bold text-[var(--text-muted)]">{companyName(user.company)}</p>
                 </td>
                 <td className="p-6">
                   <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-[var(--bg-main)] border-[var(--border-color)]">
-                    {user.role}
+                    {formatRole(user.role)}
                   </span>
                 </td>
                 <td className="p-6">
@@ -201,7 +248,7 @@ const Users = () => {
                 <td className="p-6 text-right">
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => setEditing({ id: user.id, name: user.name, email: user.email, role: user.role })}
+                      onClick={() => startEdit(user)}
                       disabled={actioning === user.id}
                       className="px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-[var(--bg-main)] border border-[var(--border-color)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all disabled:opacity-50"
                     >
@@ -291,6 +338,32 @@ const Users = () => {
               />
             </div>
             <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Company</label>
+              {companyOptions.length === 0 ? (
+                <input
+                  type="text"
+                  value={companyName(editing.company)}
+                  readOnly
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-[var(--text-muted)] cursor-not-allowed"
+                />
+              ) : (
+                <select
+                  value={editing.company || ''}
+                  onChange={(e) => setEditing({ ...editing, company: e.target.value })}
+                  disabled={!isGlobalAdmin}
+                  className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] disabled:cursor-not-allowed disabled:text-[var(--text-muted)]"
+                >
+                  <option value="">No company</option>
+                  {companyOptions.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
+              {!isGlobalAdmin && (
+                <p className="text-[10px] font-bold text-[var(--text-muted)]">Only global admins can change company.</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">Role</label>
               <select
                 value={editing.role}
@@ -298,7 +371,7 @@ const Users = () => {
                 className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
               >
                 {ROLES.map((r) => (
-                  <option key={r} value={r}>{r}</option>
+                  <option key={r} value={r}>{formatRole(r)}</option>
                 ))}
               </select>
             </div>

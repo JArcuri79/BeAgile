@@ -112,6 +112,22 @@ const Companies = () => {
     }
   };
 
+  const toggleBan = async (c) => {
+    setLoading(true);
+    setError('');
+    try {
+      await fetchJson('/api/companies', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: c.id, banned: !c.banned }),
+      });
+      await load();
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full p-10 space-y-8 bg-[var(--bg-main)] min-h-screen">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -151,6 +167,7 @@ const Companies = () => {
               <th className="p-6">Admin Name</th>
               <th className="p-6">Admin Email</th>
               <th className="p-6">Allowance</th>
+              <th className="p-6">Status</th>
               <th className="p-6">Actions</th>
             </tr>
           </thead>
@@ -163,7 +180,19 @@ const Companies = () => {
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{c.admin_email || '-'}</td>
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{c.workspaces_allowed}</td>
                 <td className="p-6">
+                  <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border ${c.banned ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-green-500/10 text-green-500 border-green-500/20'}`}>
+                    {c.banned ? 'Blocked' : 'Active'}
+                  </span>
+                </td>
+                <td className="p-6">
                   <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => toggleBan(c)}
+                      className={`p-2 rounded-lg border transition-colors ${c.banned ? 'bg-green-500/10 border-green-500/20 text-green-500 hover:bg-green-500/20' : 'bg-red-500/10 border-red-500/20 text-red-500 hover:bg-red-500/20'}`}
+                      title={c.banned ? 'Unblock' : 'Block'}
+                    >
+                      <SafeIcon name={c.banned ? 'CheckCircle' : 'Slash'} className="w-4 h-4" />
+                    </button>
                     <button
                       onClick={() => startEdit(c)}
                       className="p-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
@@ -184,7 +213,7 @@ const Companies = () => {
             ))}
             {companies.length === 0 && (
               <tr>
-                <td colSpan="6" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">{loading ? 'Loading...' : 'No companies yet.'}</td>
+                <td colSpan="7" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">{loading ? 'Loading...' : 'No companies yet.'}</td>
               </tr>
             )}
           </tbody>

@@ -87,7 +87,7 @@ const Login = () => {
         <div className="mt-8 text-left space-y-2">
           <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Live Accounts</p>
           <div className="text-[10px] text-[var(--text-muted)] font-mono bg-[var(--bg-main)] p-3 rounded-xl border border-[var(--border-color)] space-y-1">
-            <p>therestaurantsocialtv@gmail.com (superuser)</p>
+            <p>therestaurantsocialtv@gmail.com (global admin)</p>
             <p>gen50.student01@gmail.com (admin)</p>
             <p>haringeylearns@gmail.com (crew)</p>
           </div>

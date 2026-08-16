@@ -190,6 +190,7 @@ const Projects = () => {
           <thead>
             <tr className="bg-[var(--bg-main)] border-b border-[var(--border-color)] text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
               <th className="p-6">Workspace</th>
+              <th className="p-6">Slug</th>
               <th className="p-6">Company</th>
               <th className="p-6">Created</th>
               <th className="p-6 text-right">Actions</th>
@@ -199,6 +200,7 @@ const Projects = () => {
             {workspaces.map((w) => (
               <tr key={w.id} className="border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-main)]/50 transition-colors">
                 <td className="p-6 font-black text-lg">{w.name}</td>
+                <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{w.slug}</td>
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{w.company_name}</td>
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{w.created_at ? new Date(w.created_at).toLocaleDateString() : '-'}</td>
                 <td className="p-6 text-right">
@@ -233,7 +235,7 @@ const Projects = () => {
             ))}
             {workspaces.length === 0 && (
               <tr>
-                <td colSpan="4" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">{loading ? 'Loading...' : 'No workspaces found.'}</td>
+                <td colSpan="5" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">{loading ? 'Loading...' : 'No workspaces found.'}</td>
               </tr>
             )}
           </tbody>

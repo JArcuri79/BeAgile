@@ -73,7 +73,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
 
   const role = session.user.role === "superuser" ? "global_admin" : session.user.role;
   const body: any = await context.request.json().catch(() => ({}));
-  const { id, name, admin_email, admin_name, admin_phone, workspaces_allowed } = body;
+  const { id, name, admin_email, admin_name, admin_phone, workspaces_allowed, banned } = body;
   if (!id) return new Response("id required", { status: 400 });
 
   const { results } = await context.env.DB.prepare(
@@ -87,11 +87,12 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
   }
 
   const allowed = typeof workspaces_allowed === "number" ? workspaces_allowed : company.workspaces_allowed;
+  const isBanned = typeof banned === "boolean" ? (banned ? 1 : 0) : company.banned;
 
   try {
     await context.env.DB.prepare(
       `UPDATE companies
-       SET name = ?, admin_email = ?, admin_name = ?, admin_phone = ?, workspaces_allowed = ?
+       SET name = ?, admin_email = ?, admin_name = ?, admin_phone = ?, workspaces_allowed = ?, banned = ?
        WHERE id = ?`
     ).bind(
       name ?? company.name,
@@ -99,6 +100,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
       admin_name ?? company.admin_name,
       admin_phone ?? company.admin_phone,
       allowed,
+      isBanned,
       id
     ).run();
 
