@@ -1,0 +1,5 @@
+# Cascade MCP Instructions
+
+- Always query the codebase-memory-mcp tools (search_graph, trace_call_path, find_dead_code) to map symbol relationships, API routes, and dependencies before executing standard grep or reading raw files.
+- When planning edits or analyzing blast radius, check the graph first to identify all caller files.
+-
