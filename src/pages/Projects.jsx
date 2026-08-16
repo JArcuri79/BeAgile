@@ -1,6 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useParams } from 'react-router-dom';
-import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -15,13 +14,21 @@ const Projects = () => {
   const [form, setForm] = useState({ company_id: '', slug: '', name: '' });
   const [creating, setCreating] = useState(false);
 
+  const [editingWorkspace, setEditingWorkspace] = useState(null);
+  const [deletingWorkspace, setDeletingWorkspace] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   const canCreate = role === 'global_admin' || role === 'admin';
   const isGlobalAdmin = role === 'global_admin';
+
+  const canManage = (w) => isGlobalAdmin || (role === 'admin' && currentUser?.company === w.company_id);
 
   const fetchJson = async (url, opts = {}) => {
     const res = await fetch(url, { credentials: 'include', ...opts });
     if (!res.ok) throw new Error(await res.text());
-    return res.json();
+    return res.json().catch(() => ({}));
   };
 
   const load = async () => {
@@ -69,6 +76,55 @@ const Projects = () => {
       setError(err.message);
     } finally {
       setCreating(false);
+    }
+  };
+
+  const startEdit = (w) => {
+    setEditingWorkspace({ ...w });
+  };
+
+  const saveEdit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await fetchJson('/api/workspaces', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingWorkspace.id,
+          name: editingWorkspace.name,
+          slug: editingWorkspace.slug,
+        }),
+      });
+      setEditingWorkspace(null);
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startDelete = (w) => {
+    setDeletingWorkspace(w);
+    setConfirmText('');
+  };
+
+  const confirmDelete = async () => {
+    if (confirmText !== 'DELETE') return;
+    setDeleting(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/workspaces?id=${deletingWorkspace.id}`, { method: 'DELETE', credentials: 'include' });
+      if (!res.ok) throw new Error(await res.text());
+      setDeletingWorkspace(null);
+      setConfirmText('');
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -136,7 +192,7 @@ const Projects = () => {
               <th className="p-6">Workspace</th>
               <th className="p-6">Company</th>
               <th className="p-6">Created</th>
-              <th className="p-6 text-right">Open</th>
+              <th className="p-6 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -146,12 +202,32 @@ const Projects = () => {
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{w.company_name}</td>
                 <td className="p-6 text-sm font-bold text-[var(--text-muted)]">{w.created_at ? new Date(w.created_at).toLocaleDateString() : '-'}</td>
                 <td className="p-6 text-right">
-                  <NavLink
-                    to={`/${w.company_slug || w.company_id}/${w.slug}`}
-                    className="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all"
-                  >
-                    Open
-                  </NavLink>
+                  <div className="flex justify-end items-center gap-3">
+                    <NavLink
+                      to={`/${w.company_slug || w.company_id}/${w.slug}`}
+                      className="px-4 py-2 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-xs uppercase tracking-widest shadow-xl hover:scale-[1.02] transition-all"
+                    >
+                      Open
+                    </NavLink>
+                    {canManage(w) && (
+                      <>
+                        <button
+                          onClick={() => startEdit(w)}
+                          className="p-2 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-muted)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-colors"
+                          title="Edit"
+                        >
+                          <SafeIcon name="Edit2" className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => startDelete(w)}
+                          className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500/20 transition-colors"
+                          title="Delete"
+                        >
+                          <SafeIcon name="Trash2" className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
@@ -163,6 +239,72 @@ const Projects = () => {
           </tbody>
         </table>
       </div>
+
+      {editingWorkspace && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--bg-card)] w-full max-w-lg rounded-3xl border border-[var(--border-color)] shadow-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-black tracking-tighter uppercase">Edit Workspace</h2>
+              <button onClick={() => setEditingWorkspace(null)} className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)]">
+                <SafeIcon name="X" className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={saveEdit} className="space-y-4">
+              <input
+                type="text"
+                placeholder="Workspace name"
+                value={editingWorkspace.name}
+                onChange={(e) => setEditingWorkspace({ ...editingWorkspace, name: e.target.value })}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
+                required
+              />
+              <input
+                type="text"
+                placeholder="workspace-slug"
+                value={editingWorkspace.slug}
+                onChange={(e) => setEditingWorkspace({ ...editingWorkspace, slug: e.target.value })}
+                className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)]"
+                required
+              />
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setEditingWorkspace(null)} className="px-5 py-3 rounded-xl font-bold border border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]">Cancel</button>
+                <button type="submit" disabled={saving} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-6 py-3 rounded-xl font-black shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50">{saving ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deletingWorkspace && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--bg-card)] w-full max-w-md rounded-3xl border border-red-500/20 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <SafeIcon name="AlertTriangle" className="w-6 h-6" />
+              <h2 className="text-xl font-black tracking-tighter uppercase">Delete Workspace</h2>
+            </div>
+            <p className="text-sm font-bold text-[var(--text-muted)]">
+              This will permanently delete <strong className="text-[var(--text)]">{deletingWorkspace.name}</strong> and all its members. Type <strong>DELETE</strong> to confirm.
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              className="w-full bg-[var(--bg-main)] border border-red-500/20 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500"
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setDeletingWorkspace(null); setConfirmText(''); }} className="px-5 py-3 rounded-xl font-bold border border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]">Cancel</button>
+              <button
+                onClick={confirmDelete}
+                disabled={confirmText !== 'DELETE' || deleting}
+                className="bg-red-500 text-white px-6 py-3 rounded-xl font-black shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

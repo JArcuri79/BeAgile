@@ -99,3 +99,78 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
   }
 };
+
+export const onRequestPatch: PagesFunction<Env> = async (context) => {
+  const auth = createAuth(context.env);
+  const session = await getSession(auth, context.request.headers);
+  if (!session?.user) return new Response("Unauthorized", { status: 401 });
+
+  const role = session.user.role === "superuser" ? "global_admin" : session.user.role;
+  const body: any = await context.request.json().catch(() => ({}));
+  const { id, name, slug } = body;
+  if (!id) return new Response("id required", { status: 400 });
+
+  const { results } = await context.env.DB.prepare(
+    "SELECT * FROM workspaces WHERE id = ?"
+  ).bind(id).all();
+  const workspace: any = results?.[0];
+  if (!workspace) return new Response("Not found", { status: 404 });
+
+  if (role !== "global_admin" && (role !== "admin" || session.user.company !== workspace.company_id)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  try {
+    await context.env.DB.prepare(
+      `UPDATE workspaces
+       SET name = ?, slug = ?
+       WHERE id = ?`
+    ).bind(
+      name ?? workspace.name,
+      slug ?? workspace.slug,
+      id
+    ).run();
+
+    const { results: updated } = await context.env.DB.prepare(
+      `SELECT w.*, c.name as company_name, c.slug as company_slug FROM workspaces w
+       JOIN companies c ON c.id = w.company_id
+       WHERE w.id = ?`
+    ).bind(id).all();
+    return Response.json({ workspace: updated?.[0] });
+  } catch (err: any) {
+    return Response.json({ error: err.message || String(err) }, { status: 500 });
+  }
+};
+
+export const onRequestDelete: PagesFunction<Env> = async (context) => {
+  const auth = createAuth(context.env);
+  const session = await getSession(auth, context.request.headers);
+  if (!session?.user) return new Response("Unauthorized", { status: 401 });
+
+  const role = session.user.role === "superuser" ? "global_admin" : session.user.role;
+  const url = new URL(context.request.url);
+  const id = url.searchParams.get("id");
+  if (!id) return new Response("id required", { status: 400 });
+
+  const { results } = await context.env.DB.prepare(
+    "SELECT * FROM workspaces WHERE id = ?"
+  ).bind(id).all();
+  const workspace: any = results?.[0];
+  if (!workspace) return new Response("Not found", { status: 404 });
+
+  if (role !== "global_admin" && (role !== "admin" || session.user.company !== workspace.company_id)) {
+    return new Response("Forbidden", { status: 403 });
+  }
+
+  try {
+    await context.env.DB.prepare(
+      "DELETE FROM workspace_members WHERE workspace_id = ?"
+    ).bind(id).run();
+    await context.env.DB.prepare(
+      "DELETE FROM workspaces WHERE id = ?"
+    ).bind(id).run();
+    return new Response(null, { status: 204 });
+  } catch (err: any) {
+    return Response.json({ error: err.message || String(err) }, { status: 500 });
+  }
+};

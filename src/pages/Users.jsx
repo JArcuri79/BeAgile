@@ -13,6 +13,8 @@ const Users = () => {
   const [sortBy, setSortBy] = useState('name');
   const [editing, setEditing] = useState(null);
   const [actioning, setActioning] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [confirmText, setConfirmText] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -93,11 +95,19 @@ const Users = () => {
     }
   };
 
-  const removeUser = async (user) => {
-    if (!window.confirm(`Permanently delete ${user.name} (${user.email})?`)) return;
-    setActioning(user.id);
+  const startDelete = (user) => {
+    setDeleting(user);
+    setConfirmText('');
+  };
+
+  const confirmDelete = async () => {
+    if (confirmText !== 'DELETE' || !deleting) return;
+    setActioning('delete');
+    setError('');
     try {
-      await authClient.admin.removeUser({ userId: user.id });
+      await authClient.admin.removeUser({ userId: deleting.id });
+      setDeleting(null);
+      setConfirmText('');
       await load();
     } catch (err) {
       setError(err?.message || 'Failed to delete user.');
@@ -105,6 +115,8 @@ const Users = () => {
       setActioning(null);
     }
   };
+
+  const removeUser = (user) => startDelete(user);
 
   return (
     <div className="w-full p-10 space-y-10 bg-[var(--bg-main)] min-h-screen">
@@ -223,6 +235,37 @@ const Users = () => {
           </tbody>
         </table>
       </div>
+
+      {deleting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--bg-card)] w-full max-w-md rounded-3xl border border-red-500/20 shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3 text-red-500">
+              <SafeIcon icon={FiIcons.FiAlertTriangle} className="w-6 h-6" />
+              <h2 className="text-xl font-black tracking-tighter uppercase">Delete User</h2>
+            </div>
+            <p className="text-sm font-bold text-[var(--text-muted)]">
+              This will permanently delete <strong className="text-[var(--text)]">{deleting.name} ({deleting.email})</strong>. Type <strong>DELETE</strong> to confirm.
+            </p>
+            <input
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type DELETE"
+              className="w-full bg-[var(--bg-main)] border border-red-500/20 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-red-500"
+            />
+            <div className="flex justify-end gap-3">
+              <button onClick={() => { setDeleting(null); setConfirmText(''); }} className="px-5 py-3 rounded-xl font-bold border border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]">Cancel</button>
+              <button
+                onClick={confirmDelete}
+                disabled={confirmText !== 'DELETE' || actioning === 'delete'}
+                className="bg-red-500 text-white px-6 py-3 rounded-xl font-black shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
+              >
+                {actioning === 'delete' ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
