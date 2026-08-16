@@ -13,13 +13,14 @@ import ProjectList from './pages/ProjectList';
 import MyList from './pages/MyList';
 import Kanban from './pages/Kanban';
 import Changelog from './pages/Changelog';
-import AppSettings from './pages/AppSettings';
+import CompanySettings from './pages/CompanySettings';
 import Users from './pages/Users';
 import WorkspaceUsers from './pages/WorkspaceUsers';
 import Projects from './pages/Projects';
 import Companies from './pages/Companies';
 import AccountSettings from './pages/AccountSettings';
 import Login from './pages/Login';
+import PasswordGate from './components/PasswordGate';
 import ResetPassword from './pages/ResetPassword';
 import Links from './pages/Links';
 import Notes from './pages/Notes';
@@ -52,11 +53,13 @@ const AppRoutes = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><Companies /></ProtectedRoute>} />
-          <Route path="/users" element={<ProtectedRoute allowedRoles={['global_admin']}><Users /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><Projects /></ProtectedRoute>} />
+          <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><PasswordGate title="Manage Companies"><Companies /></PasswordGate></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute allowedRoles={['global_admin']}><PasswordGate title="Manage Users"><Users /></PasswordGate></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><PasswordGate title="Manage Workspaces"><Projects /></PasswordGate></ProtectedRoute>} />
+          <Route path="/company-settings" element={<ProtectedRoute allowedRoles={['global_admin', 'admin']}><CompanySettings /></ProtectedRoute>} />
+          <Route path="/account" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><AccountSettings /></ProtectedRoute>} />
 
-          <Route path="/:companySlug/projects" element={<ProtectedRoute allowedRoles={['admin', 'global_admin', 'crew', 'user']}><Projects /></ProtectedRoute>} />
+          <Route path="/:companySlug/projects" element={<ProtectedRoute allowedRoles={['admin', 'global_admin', 'crew', 'user']}><PasswordGate title="Manage Workspaces"><Projects /></PasswordGate></ProtectedRoute>} />
 
           <Route path="/:companySlug/:workspaceSlug" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><WorkspaceLayout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
@@ -69,7 +72,7 @@ const AppRoutes = () => {
             <Route path="links" element={<Links />} />
             <Route path="notes" element={<Notes />} />
             <Route path="account" element={<AccountSettings />} />
-            <Route path="settings/app" element={<AppSettings />} />
+            <Route path="company-settings" element={<CompanySettings />} />
             <Route path="users" element={<WorkspaceUsers />} />
             <Route path="*" element={<Navigate to="." replace />} />
           </Route>

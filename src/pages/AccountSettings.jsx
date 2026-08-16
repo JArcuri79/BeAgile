@@ -2,42 +2,87 @@ import React, { useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 import { useAuth } from '../contexts/AuthContext';
+import { authClient } from '../lib/auth-client';
+
+const SPECIALS = "#@?><£$%&";
+
+function validatePassword(password) {
+  if (password.length < 12) return "Password must be at least 12 characters";
+  if (password.length > 128) return "Password must be at most 128 characters";
+  if (!/[A-Z]/.test(password)) return "Password must contain an uppercase letter";
+  if (!/[a-z]/.test(password)) return "Password must contain a lowercase letter";
+  if (!/[0-9]/.test(password)) return "Password must contain a number";
+  if (!new RegExp(`[\\${SPECIALS.replace(/[\]]/g, "\\]")}]`).test(password)) {
+    return `Password must contain a special character: ${SPECIALS}`;
+  }
+  return null;
+}
 
 const AccountSettings = () => {
-  const { role } = useAuth();
+  const { currentUser } = useAuth();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authPassword, setAuthPassword] = useState('');
-  
+
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [message, setMessage] = useState(null);
+  const [checking, setChecking] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const handleAuth = (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault();
-    if (authPassword === 'password') {
+    if (!authPassword) return;
+    setChecking(true);
+    setMessage(null);
+    try {
+      const result = await authClient.signIn.email({
+        email: currentUser?.email,
+        password: authPassword,
+        rememberMe: false,
+      });
+      if (result.error) throw new Error(result.error.message || 'Incorrect password');
       setIsAuthenticated(true);
-    } else {
-      alert('Incorrect password. (Hint: use "password" for mock access)');
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Incorrect password.' });
+    } finally {
+      setChecking(false);
     }
   };
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault();
-    
-    // Strict Regex Requirements: 12 chars, upper, lower, 2 numbers, 2 special chars
-    const strictRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=(.*[0-9]){2})(?=(.*[£$%#@><?!]){2}).{12,}$/;
+    setMessage(null);
 
     if (passwords.new !== passwords.confirm) {
       setMessage({ type: 'error', text: 'New passwords do not match.' });
       return;
     }
 
-    if (!strictRegex.test(passwords.new)) {
-      setMessage({ type: 'error', text: 'Password must be 12+ chars, include upper/lower case, 2 numbers, and 2 special characters (£,$,%,#,@,>,<,?,!).' });
+    const v = validatePassword(passwords.new);
+    if (v) {
+      setMessage({ type: 'error', text: v });
       return;
     }
 
-    setMessage({ type: 'success', text: 'Password successfully updated!' });
-    setPasswords({ current: '', new: '', confirm: '' });
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          currentPassword: passwords.current,
+          newPassword: passwords.new,
+          revokeOtherSessions: true,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setMessage({ type: 'success', text: 'Password updated successfully.' });
+      setPasswords({ current: '', new: '', confirm: '' });
+    } catch (err) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update password.' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   if (!isAuthenticated) {
@@ -48,18 +93,24 @@ const AccountSettings = () => {
             <SafeIcon icon={FiIcons.FiLock} />
           </div>
           <h2 className="text-2xl font-black text-center mb-2 text-[var(--text-main)]">Security Check</h2>
-          <p className="text-[var(--text-muted)] text-sm font-bold text-center mb-8">Please enter your current password to access account settings.</p>
-          
+          <p className="text-[var(--text-muted)] text-sm font-bold text-center mb-8">Enter your current password to access account settings.</p>
+
+          {message?.type === 'error' && <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 text-xs font-bold text-center">{message.text}</div>}
+
           <form onSubmit={handleAuth} className="space-y-4">
-            <input 
-              type="password" 
-              value={authPassword} 
-              onChange={e => setAuthPassword(e.target.value)} 
-              placeholder="Enter password..." 
+            <input
+              type="password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              placeholder="Current password..."
               className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)] text-center tracking-widest"
             />
-            <button type="submit" className="w-full py-4 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-sm shadow-xl hover:scale-[1.02] transition-all">
-              AUTHENTICATE
+            <button
+              type="submit"
+              disabled={checking}
+              className="w-full py-4 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-sm shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
+            >
+              {checking ? 'AUTHENTICATING...' : 'AUTHENTICATE'}
             </button>
           </form>
         </div>
@@ -86,13 +137,19 @@ const AccountSettings = () => {
             <div>
               <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">Display Name</label>
               <div className="px-4 py-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-sm font-bold text-[var(--text-main)]">
-                Logged in as {role.replace('_', ' ').toUpperCase()}
+                {currentUser?.name || '-'}
               </div>
             </div>
             <div>
               <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">Email Address</label>
               <div className="px-4 py-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-sm font-bold text-[var(--text-main)]">
-                {role}@company.com
+                {currentUser?.email || '-'}
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">Role</label>
+              <div className="px-4 py-3 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-sm font-bold text-[var(--text-main)]">
+                {currentUser?.role || 'user'}
               </div>
             </div>
           </div>
@@ -105,19 +162,22 @@ const AccountSettings = () => {
             </div>
             <h2 className="text-2xl font-black tracking-tight text-[var(--text-main)]">Update Password</h2>
           </div>
-          
+
           <form onSubmit={handleChangePassword} className="space-y-6">
             <div>
               <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">Current Password</label>
-              <input type="password" value={passwords.current} onChange={e => setPasswords({...passwords, current: e.target.value})} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
+              <input type="password" value={passwords.current} onChange={(e) => setPasswords({ ...passwords, current: e.target.value })} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
             </div>
             <div className="pt-4 border-t border-[var(--border-color)]">
               <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">New Password</label>
-              <input type="password" value={passwords.new} onChange={e => setPasswords({...passwords, new: e.target.value})} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
+              <input type="password" value={passwords.new} onChange={(e) => setPasswords({ ...passwords, new: e.target.value })} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
+              <p className="mt-1 text-[10px] text-[var(--text-muted)] font-bold">
+                12+ characters, upper &amp; lower, a number, and one of {SPECIALS}
+              </p>
             </div>
             <div>
               <label className="text-[10px] font-black uppercase text-[var(--text-muted)] tracking-widest block mb-2">Confirm New Password</label>
-              <input type="password" value={passwords.confirm} onChange={e => setPasswords({...passwords, confirm: e.target.value})} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
+              <input type="password" value={passwords.confirm} onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-[var(--accent)] text-[var(--text-main)]" />
             </div>
 
             {message && (
@@ -126,8 +186,8 @@ const AccountSettings = () => {
               </div>
             )}
 
-            <button type="submit" className="w-full py-4 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-sm shadow-xl hover:scale-[1.02] transition-all">
-              UPDATE CREDENTIALS
+            <button type="submit" disabled={saving} className="w-full py-4 rounded-xl bg-[var(--accent)] text-[var(--accent-foreground)] font-black text-sm shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50">
+              {saving ? 'UPDATING...' : 'UPDATE CREDENTIALS'}
             </button>
           </form>
         </div>

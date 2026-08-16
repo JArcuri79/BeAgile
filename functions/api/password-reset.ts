@@ -1,5 +1,6 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { createAuth, type Env } from "../_shared/auth";
+import { logAudit, checkRateLimit } from "../_shared/audit";
 
 async function getSession(auth: any, headers: Headers) {
   try {
@@ -35,6 +36,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response("token, email and newPassword required", { status: 400 });
     }
 
+    const rateOk = await checkRateLimit(context.env.DB, token, "reset_confirm", 5, 300);
+    if (!rateOk) return new Response("Too many reset attempts", { status: 429 });
+
     const validation = validatePassword(newPassword);
     if (validation) return new Response(validation, { status: 400 });
 
@@ -68,6 +72,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       "UPDATE password_resets SET used = 1 WHERE token = ?"
     ).bind(token).run();
 
+    await logAudit(context.env.DB, reset.user_id, reset.email, "password_reset.confirm", token, "");
     return Response.json({ status: true, mobile_token: reset.mobile_token });
   }
 
@@ -98,6 +103,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return new Response("Forbidden", { status: 403 });
   }
 
+  const rateOk = await checkRateLimit(context.env.DB, session.user.id, "reset_generate", 10, 60);
+  if (!rateOk) return new Response("Too many reset requests", { status: 429 });
+
   const base = context.env.BETTER_AUTH_BASE_URL || new URL(context.request.url).origin;
   const redirectTo = `${base}/reset-password`;
 
@@ -120,6 +128,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const link = `${base}/#/reset-password?token=${encodeURIComponent(row.token)}&mobile=${encodeURIComponent(row.mobile_token)}`;
+
+  await logAudit(context.env.DB, session.user.id, session.user.email, "password_reset.generate", row.id, `${user.email} (${user.id})`);
 
   return Response.json({
     token: row.token,

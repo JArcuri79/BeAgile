@@ -24,7 +24,8 @@ const NavigationMenu = ({ isOpen, onClose }) => {
         { name: 'Manage Companies', path: '/companies', icon: FiIcons.FiBriefcase },
         { name: 'Manage Workspaces', path: '/projects', icon: FiIcons.FiLayers },
         { name: 'Manage Users', path: '/users', icon: FiIcons.FiUsers },
-        { name: 'Settings', path: base ? `${base}/settings/app` : '/settings/app', icon: FiIcons.FiSettings },
+        { name: 'Company Settings', path: base ? `${base}/company-settings` : '/company-settings', icon: FiIcons.FiSettings },
+        { name: 'Account Settings', path: base ? `${base}/account` : '/account', icon: FiIcons.FiUser },
       ];
     }
 
@@ -34,7 +35,8 @@ const NavigationMenu = ({ isOpen, onClose }) => {
       return [
         { name: 'Company Workspaces', path: companyProjects, icon: FiIcons.FiLayers },
         { name: 'Workspace Users', path: workspaceUsers, icon: FiIcons.FiUsers },
-        { name: 'Settings', path: base ? `${base}/settings/app` : '/settings/app', icon: FiIcons.FiSettings },
+        { name: 'Company Settings', path: base ? `${base}/company-settings` : '/company-settings', icon: FiIcons.FiSettings },
+        { name: 'Account Settings', path: base ? `${base}/account` : '/account', icon: FiIcons.FiUser },
       ];
     }
 
@@ -44,6 +46,7 @@ const NavigationMenu = ({ isOpen, onClose }) => {
       return [
         { name: 'My Workspaces', path: companyProjects, icon: FiIcons.FiLayers },
         { name: 'Workspace Users', path: workspaceUsers, icon: FiIcons.FiUsers },
+        { name: 'Account Settings', path: base ? `${base}/account` : '/account', icon: FiIcons.FiUser },
       ];
     }
 

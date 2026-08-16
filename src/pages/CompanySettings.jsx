@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 
-const AppSettings = () => {
+const CompanySettings = () => {
   const { 
     logoUrl, setLogoUrl, 
     accentColor, setAccentColor, 
@@ -35,7 +35,7 @@ const AppSettings = () => {
   return (
     <div className="w-full p-10 space-y-12 bg-[var(--bg-main)] min-h-screen">
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-black tracking-tighter uppercase text-[var(--text-main)]">App Customization</h1>
+        <h1 className="text-4xl font-black tracking-tighter uppercase text-[var(--text-main)]">Company Settings</h1>
         <p className="text-[var(--text-muted)] font-bold">Manage your workspace branding and visual personality.</p>
       </div>
 
@@ -171,4 +171,4 @@ const AppSettings = () => {
   );
 };
 
-export default AppSettings;
+export default CompanySettings;

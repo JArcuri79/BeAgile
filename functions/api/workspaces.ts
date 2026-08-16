@@ -1,5 +1,6 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { createAuth, type Env } from "../_shared/auth";
+import { logAudit } from "../_shared/audit";
 
 async function getSession(auth: any, headers: Headers) {
   try {
@@ -94,7 +95,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
        JOIN companies c ON c.id = w.company_id
        WHERE w.id = ?`
     ).bind(id).all();
-    return Response.json({ workspace: results?.[0] });
+    const workspace = results?.[0];
+    await logAudit(context.env.DB, session.user.id, session.user.email, "workspace.create", id, `${name} (${company_id})`);
+    return Response.json({ workspace });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
   }
@@ -136,6 +139,7 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
        JOIN companies c ON c.id = w.company_id
        WHERE w.id = ?`
     ).bind(id).all();
+    await logAudit(context.env.DB, session.user.id, session.user.email, "workspace.update", id, name ?? workspace.name);
     return Response.json({ workspace: updated?.[0] });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
@@ -169,6 +173,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     await context.env.DB.prepare(
       "DELETE FROM workspaces WHERE id = ?"
     ).bind(id).run();
+    await logAudit(context.env.DB, session.user.id, session.user.email, "workspace.delete", id, workspace.name);
     return new Response(null, { status: 204 });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });

@@ -1,5 +1,6 @@
 import type { PagesFunction } from "@cloudflare/workers-types";
 import { createAuth, type Env } from "../_shared/auth";
+import { logAudit } from "../_shared/audit";
 
 async function getSession(auth: any, headers: Headers) {
   try {
@@ -60,7 +61,9 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     const { results } = await context.env.DB.prepare(
       "SELECT * FROM companies WHERE id = ?"
     ).bind(id).all();
-    return Response.json({ company: results?.[0] });
+    const company = results?.[0];
+    await logAudit(context.env.DB, session.user.id, session.user.email, "company.create", id, name);
+    return Response.json({ company });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
   }
@@ -107,6 +110,8 @@ export const onRequestPatch: PagesFunction<Env> = async (context) => {
     const { results: updated } = await context.env.DB.prepare(
       "SELECT * FROM companies WHERE id = ?"
     ).bind(id).all();
+    const action = typeof banned === "boolean" ? (banned ? "company.block" : "company.unblock") : "company.update";
+    await logAudit(context.env.DB, session.user.id, session.user.email, action, id, name ?? company.name);
     return Response.json({ company: updated?.[0] });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
@@ -150,6 +155,7 @@ export const onRequestDelete: PagesFunction<Env> = async (context) => {
     }
 
     await context.env.DB.prepare("DELETE FROM companies WHERE id = ?").bind(id).run();
+    await logAudit(context.env.DB, session.user.id, session.user.email, "company.delete", id, results[0]?.name);
     return new Response(null, { status: 204 });
   } catch (err: any) {
     return Response.json({ error: err.message || String(err) }, { status: 500 });
