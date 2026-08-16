@@ -23,16 +23,21 @@ const Login = () => {
     }
   }, [isAuthenticated, navigate, from]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    const result = login(email, password);
-    if (result.success) {
-      navigate(from, { replace: true });
-    } else {
-      setError(result.error);
+    try {
+      const result = await login(email, password);
+      if (result.success) {
+        navigate(from, { replace: true });
+      } else {
+        setError(result.error);
+      }
+    } catch (err) {
+      setError(err?.message || 'An unexpected error occurred.');
+    } finally {
       setIsLoading(false);
     }
   };
@@ -80,14 +85,13 @@ const Login = () => {
         </form>
 
         <div className="mt-8 text-left space-y-2">
-          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Demo Accounts</p>
+          <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Live Accounts</p>
           <div className="text-[10px] text-[var(--text-muted)] font-mono bg-[var(--bg-main)] p-3 rounded-xl border border-[var(--border-color)] space-y-1">
-            <p>admin@beagile.com</p>
-            <p>sarah.j@beagile.com (crew)</p>
-            <p>j.marcus@beagile.com (user)</p>
-            <p>super@beagile.com (global)</p>
+            <p>therestaurantsocialtv@gmail.com (superuser)</p>
+            <p>gen50.student01@gmail.com (admin)</p>
+            <p>haringeylearns@gmail.com (crew)</p>
           </div>
-          <p className="text-[10px] text-[var(--text-muted)] font-bold">Any password will work in this simulation.</p>
+          <p className="text-[10px] text-[var(--text-muted)] font-bold">Use the password provided by your administrator.</p>
         </div>
       </div>
     </div>

@@ -9,7 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^5.20260816.1",
     "@questlabs/react-sdk": "^2.2.92",
+    "better-auth": "^1.6.29",
     "date-fns": "4.1.0",
     "echarts": "^5.5.0",
     "echarts-for-react": "^3.0.2",

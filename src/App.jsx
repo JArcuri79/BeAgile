@@ -25,7 +25,8 @@ import './App.css';
 import '@questlabs/react-sdk/dist/style.css';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { role } = useAuth();
+  const { role, isLoading } = useAuth();
+  if (isLoading) return null;
   if (!allowedRoles.includes(role)) {
     return <Navigate to="/roadmap" replace />;
   }
