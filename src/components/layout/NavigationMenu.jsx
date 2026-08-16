@@ -35,7 +35,7 @@ const NavigationMenu = ({ isOpen, onClose }) => {
       return [
         { name: 'Company Workspaces', path: companyProjects, icon: FiIcons.FiLayers },
         { name: 'Workspace Users', path: workspaceUsers, icon: FiIcons.FiUsers },
-        { name: 'Company Settings', path: base ? `${base}/company-settings` : '/company-settings', icon: FiIcons.FiSettings },
+        { name: 'Manage Users', path: '/users', icon: FiIcons.FiUsers },
         { name: 'Account Settings', path: base ? `${base}/account` : '/account', icon: FiIcons.FiUser },
       ];
     }

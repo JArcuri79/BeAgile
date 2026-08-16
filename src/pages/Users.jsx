@@ -69,11 +69,12 @@ const Users = () => {
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase();
     return (users || [])
-      .filter(
-        (u) =>
-          (u.name || '').toLowerCase().includes(q) ||
-          (u.email || '').toLowerCase().includes(q)
-      )
+      .filter((u) => {
+        const matches = (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
+        if (!matches) return false;
+        if (isGlobalAdmin) return true;
+        return u.company === currentUser?.company;
+      })
       .sort((a, b) => {
         if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '');
         if (sortBy === 'role') return (a.role || '').localeCompare(b.role || '');
