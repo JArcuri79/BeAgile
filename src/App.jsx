@@ -20,6 +20,7 @@ import Projects from './pages/Projects';
 import Companies from './pages/Companies';
 import AccountSettings from './pages/AccountSettings';
 import Login from './pages/Login';
+import ResetPassword from './pages/ResetPassword';
 import Links from './pages/Links';
 import Notes from './pages/Notes';
 
@@ -50,6 +51,7 @@ const AppRoutes = () => {
       <main className="flex-1 overflow-x-hidden">
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><Companies /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute allowedRoles={['global_admin']}><Users /></ProtectedRoute>} />
           <Route path="/projects" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><Projects /></ProtectedRoute>} />

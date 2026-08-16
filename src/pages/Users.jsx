@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as FiIcons from 'react-icons/fi';
+import { QRCodeSVG } from 'qrcode.react';
 import SafeIcon from '../common/SafeIcon';
 import { authClient } from '../lib/auth-client';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,6 +29,9 @@ const Users = () => {
   const [actioning, setActioning] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [confirmText, setConfirmText] = useState('');
+  const [resetData, setResetData] = useState(null);
+  const [resetting, setResetting] = useState(null);
+  const [resetError, setResetError] = useState('');
 
   const fetchJson = async (url, opts = {}) => {
     const res = await fetch(url, { credentials: 'include', ...opts });
@@ -155,6 +159,24 @@ const Users = () => {
 
   const removeUser = (user) => startDelete(user);
 
+  const requestReset = async (user) => {
+    setResetting(user.id);
+    setResetError('');
+    setResetData(null);
+    try {
+      const data = await fetchJson('/api/password-reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      setResetData(data);
+    } catch (err) {
+      setResetError(err.message || 'Failed to generate reset link.');
+    } finally {
+      setResetting(null);
+    }
+  };
+
   const startEdit = (user) => {
     setEditing({
       id: user.id,
@@ -248,6 +270,13 @@ const Users = () => {
                 <td className="p-6 text-right">
                   <div className="flex justify-end gap-2">
                     <button
+                      onClick={() => requestReset(user)}
+                      disabled={resetting === user.id}
+                      className="px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 hover:bg-[var(--accent)]/20 transition-all disabled:opacity-50"
+                    >
+                      {resetting === user.id ? '...' : 'Reset'}
+                    </button>
+                    <button
                       onClick={() => startEdit(user)}
                       disabled={actioning === user.id}
                       className="px-3 py-2 rounded-xl text-xs font-black uppercase tracking-widest bg-[var(--bg-main)] border border-[var(--border-color)] hover:text-[var(--accent)] hover:border-[var(--accent)] transition-all disabled:opacity-50"
@@ -308,6 +337,46 @@ const Users = () => {
                 className="bg-red-500 text-white px-6 py-3 rounded-xl font-black shadow-xl hover:scale-[1.02] transition-all disabled:opacity-50"
               >
                 {actioning === 'delete' ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {resetData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-[var(--bg-card)] w-full max-w-md rounded-3xl border border-[var(--border-color)] shadow-2xl p-6 space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-black tracking-tighter uppercase">Password Reset</h2>
+              <button onClick={() => { setResetData(null); setResetError(''); }} className="p-2 text-[var(--text-muted)] hover:text-[var(--accent)]">
+                <SafeIcon icon={FiIcons.FiX} className="w-5 h-5" />
+              </button>
+            </div>
+            {resetError && <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-500 font-bold text-sm">{resetError}</div>}
+            <p className="text-sm font-bold text-[var(--text-muted)]">
+              Share the link or QR code with <strong className="text-[var(--text)]">{resetData.email}</strong>. It expires in 3 minutes.
+            </p>
+            <div className="flex justify-center p-4 bg-white rounded-2xl">
+              <QRCodeSVG value={resetData.link} size={180} level="M" includeMargin={true} />
+            </div>
+            <input
+              type="text"
+              readOnly
+              value={resetData.link}
+              className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-sm font-bold text-[var(--text-muted)] truncate"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => { navigator.clipboard.writeText(resetData.link); }}
+                className="px-5 py-3 rounded-xl font-bold border border-[var(--border-color)] text-[var(--text-muted)] hover:bg-[var(--bg-main)]"
+              >
+                Copy Link
+              </button>
+              <button
+                onClick={() => { setResetData(null); setResetError(''); }}
+                className="bg-[var(--accent)] text-[var(--accent-foreground)] px-6 py-3 rounded-xl font-black shadow-xl hover:scale-[1.02] transition-all"
+              >
+                Done
               </button>
             </div>
           </div>
