@@ -1,5 +1,7 @@
 import { betterAuth } from "better-auth";
 import { admin } from "better-auth/plugins";
+import { createAccessControl } from "better-auth/plugins/access";
+import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
 import type { D1Database } from "@cloudflare/workers-types";
 
 export interface Env {
@@ -12,6 +14,13 @@ export interface Env {
   SEED_SECRET: string;
 }
 
+const ac = createAccessControl(defaultStatements);
+
+const superuserRole = ac.newRole(adminAc.statements);
+const adminRole = ac.newRole(adminAc.statements);
+const crewRole = ac.newRole({});
+const userRole = ac.newRole({});
+
 export function createAuth(env: Env) {
   return betterAuth({
     database: env.DB,
@@ -21,9 +30,24 @@ export function createAuth(env: Env) {
       enabled: true,
       autoSignInAfterSignup: false,
     },
+    user: {
+      additionalFields: {
+        company: {
+          type: "string",
+          required: false,
+        },
+      },
+    },
     plugins: [
       admin({
-        adminRoles: ["admin", "superuser"],
+        ac,
+        roles: {
+          superuser: superuserRole,
+          admin: adminRole,
+          crew: crewRole,
+          user: userRole,
+        },
+        adminRoles: ["superuser", "admin"],
         defaultUserRole: "user",
       }),
     ],

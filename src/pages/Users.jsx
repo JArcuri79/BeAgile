@@ -147,6 +147,7 @@ const Users = () => {
             <tr className="bg-[var(--bg-main)] border-b border-[var(--border-color)] text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
               <th className="p-6">Identity</th>
               <th className="p-6">Email</th>
+              <th className="p-6">Company</th>
               <th className="p-6">Role</th>
               <th className="p-6">Status</th>
               <th className="p-6">Joined</th>
@@ -166,6 +167,9 @@ const Users = () => {
                 </td>
                 <td className="p-6">
                   <p className="text-sm font-bold text-[var(--text-muted)]">{user.email}</p>
+                </td>
+                <td className="p-6">
+                  <p className="text-sm font-bold text-[var(--text-muted)]">{user.company || '-'}</p>
                 </td>
                 <td className="p-6">
                   <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border bg-[var(--bg-main)] border-[var(--border-color)]">
@@ -211,7 +215,7 @@ const Users = () => {
             ))}
             {filteredUsers.length === 0 && (
               <tr>
-                <td colSpan="6" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">
+                <td colSpan="7" className="p-10 text-center text-[var(--text-muted)] font-bold text-sm">
                   {loading ? 'Loading users...' : 'No users found.'}
                 </td>
               </tr>

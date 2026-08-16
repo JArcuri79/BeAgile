@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import NavigationMenu from './NavigationMenu';
@@ -8,35 +8,39 @@ import SafeIcon from '../../common/SafeIcon';
 import { motion } from 'framer-motion';
 
 const Header = () => {
-  const { role, switchRole } = useAuth();
-  const { isDark, toggleTheme, logoUrl, companyName, companyWebsiteUrl } = useTheme();
+  const { role, switchRole, currentUser } = useAuth();
+  const { isDark, toggleTheme, logoUrl, companyName } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const { companySlug, workspaceSlug } = useParams();
+
+  const base = companySlug && workspaceSlug ? `/${companySlug}/${workspaceSlug}` : '';
 
   const navLinks = [
-    { name: 'Dashboard', path: '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Roadmap', path: '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Bugs Log', path: '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Project List', path: '/project-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'My List', path: '/my-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Kanban', path: '/kanban', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Changelog', path: '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Links', path: '/links', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Notes', path: '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Dashboard', path: base || '/projects', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
+    { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
+    { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'My List', path: base ? `${base}/my-list` : '/my-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Kanban', path: base ? `${base}/kanban` : '/kanban', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Changelog', path: base ? `${base}/changelog` : '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
+    { name: 'Links', path: base ? `${base}/links` : '/links', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
   ].filter(link => link.allowedRoles.includes(role));
+
+  const homeLink = base || '/projects';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border-color)] bg-[var(--bg-card)]">
-      {/* Simulation Bar */}
       <div className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 sm:px-8 py-1.5 text-[10px] flex justify-between items-center font-black tracking-widest uppercase transition-colors">
-        <span className="hidden sm:inline">Global Infrastructure Node</span>
+        <span className="hidden sm:inline">{companySlug && workspaceSlug ? `${companySlug} / ${workspaceSlug}` : 'Global Infrastructure Node'}</span>
         <div className="flex gap-2 sm:gap-4 items-center overflow-x-auto">
           <span className="opacity-70 hidden md:inline">Simulation Context:</span>
           <div className="flex gap-1 bg-black/20 p-0.5 rounded-md">
             {['guest', 'user', 'crew', 'admin', 'global_admin'].map(r => (
-              <button 
-                key={r} 
-                onClick={() => switchRole(r)} 
+              <button
+                key={r}
+                onClick={() => switchRole(r)}
                 className={`px-2 sm:px-3 py-0.5 rounded transition-all whitespace-nowrap ${role === r ? 'bg-white text-black shadow-sm' : 'hover:bg-white/10'}`}
               >
                 {r.replace('_', ' ')}
@@ -46,10 +50,9 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Main Header */}
       <div className="w-full px-8 h-16 flex items-center justify-between border-b border-[var(--border-color)]">
         <div className="flex items-center gap-6">
-          <NavLink to={['crew', 'admin', 'global_admin'].includes(role) ? "/" : "/roadmap"} className="flex items-center gap-3 font-black text-2xl tracking-tighter">
+          <NavLink to={homeLink} className="flex items-center gap-3 font-black text-2xl tracking-tighter">
             {(!logoUrl || imgError) ? (
               <div className="w-9 h-9 bg-[var(--accent)] rounded-xl flex items-center justify-center text-[var(--accent-foreground)] shadow-lg transition-all">
                 <SafeIcon icon={FiIcons.FiZap} className="text-xl" />
@@ -82,25 +85,18 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Navigation Bar */}
       <div className="w-full px-8 h-12 flex items-center gap-8 bg-[var(--bg-card)] overflow-x-auto">
         <nav className="flex gap-8 h-full whitespace-nowrap">
-          {/* Company Website Link for Guest and User */}
           {(role === 'guest' || role === 'user') && (
-            <a 
-              href={companyWebsiteUrl} 
-              target="_blank" 
-              rel="noopener noreferrer" 
-              className="h-full flex items-center gap-2 px-1 text-sm font-black tracking-tight text-[var(--text-main)] hover:text-[var(--accent)] transition-all border-b-2 border-transparent hover:border-[var(--accent)]"
-            >
+            <a href={companyName} target="_blank" rel="noopener noreferrer" className="h-full flex items-center gap-2 px-1 text-sm font-black tracking-tight text-[var(--text-main)] hover:text-[var(--accent)] transition-all border-b-2 border-transparent hover:border-[var(--accent)]">
               <SafeIcon icon={FiIcons.FiGlobe} /> Home
             </a>
           )}
 
           {navLinks.map(link => (
-            <NavLink 
-              key={link.path} 
-              to={link.path} 
+            <NavLink
+              key={link.path}
+              to={link.path}
               className={({ isActive }) => `h-full flex items-center relative px-1 text-sm font-bold tracking-tight transition-all ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
             >
               {({ isActive }) => (

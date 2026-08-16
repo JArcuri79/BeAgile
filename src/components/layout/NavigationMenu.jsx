@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -11,38 +11,43 @@ const NavigationMenu = ({ isOpen, onClose }) => {
   const { role, currentUser, isAuthenticated, logout } = useAuth();
   const { accentColor } = useTheme();
   const navigate = useNavigate();
+  const { companySlug, workspaceSlug } = useParams();
   const currentUrl = window.location.href;
 
   const getMenuItems = () => {
-    const base = [];
+    if (role === 'guest' || role === 'user') return [];
 
-    if (role === 'guest' || role === 'user') {
-      return base;
-    }
+    const base = companySlug && workspaceSlug ? `/${companySlug}/${workspaceSlug}` : '';
 
-    if (role === 'crew') {
+    if (role === 'global_admin') {
       return [
-        { name: 'Settings', path: '/settings/app', icon: FiIcons.FiSettings },
+        { name: 'Manage Companies', path: '/companies', icon: FiIcons.FiBriefcase },
+        { name: 'Manage Workspaces', path: '/projects', icon: FiIcons.FiLayers },
+        { name: 'Manage Users', path: '/users', icon: FiIcons.FiUsers },
+        { name: 'Settings', path: base ? `${base}/settings/app` : '/settings/app', icon: FiIcons.FiSettings },
       ];
     }
 
     if (role === 'admin') {
+      const companyProjects = companySlug ? `/${companySlug}/projects` : '/projects';
+      const workspaceUsers = base ? `${base}/users` : companyProjects;
       return [
-        { name: 'Manage Workspaces', path: '/projects', icon: FiIcons.FiBriefcase },
-        { name: 'Manage Users', path: '/settings/users', icon: FiIcons.FiUsers },
-        { name: 'Settings', path: '/settings/app', icon: FiIcons.FiSettings },
+        { name: 'Company Workspaces', path: companyProjects, icon: FiIcons.FiLayers },
+        { name: 'Workspace Users', path: workspaceUsers, icon: FiIcons.FiUsers },
+        { name: 'Settings', path: base ? `${base}/settings/app` : '/settings/app', icon: FiIcons.FiSettings },
       ];
     }
 
-    if (role === 'global_admin') {
+    if (role === 'crew') {
+      const companyProjects = companySlug ? `/${companySlug}/projects` : '/projects';
+      const workspaceUsers = base ? `${base}/users` : companyProjects;
       return [
-        { name: 'Manage Workspaces', path: '/companies', icon: FiIcons.FiBriefcase },
-        { name: 'Manage Users', path: '/settings/users', icon: FiIcons.FiUsers },
-        { name: 'Settings', path: '/settings/app', icon: FiIcons.FiSettings },
+        { name: 'My Workspaces', path: companyProjects, icon: FiIcons.FiLayers },
+        { name: 'Workspace Users', path: workspaceUsers, icon: FiIcons.FiUsers },
       ];
     }
 
-    return base;
+    return [];
   };
 
   const visibleItems = getMenuItems();
@@ -51,7 +56,7 @@ const NavigationMenu = ({ isOpen, onClose }) => {
     onClose();
     if (isAuthenticated) {
       logout();
-      navigate('/roadmap');
+      navigate('/login');
     } else {
       navigate('/login');
     }
@@ -61,19 +66,19 @@ const NavigationMenu = ({ isOpen, onClose }) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            exit={{ opacity: 0 }} 
-            onClick={onClose} 
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]" 
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
           />
-          <motion.div 
-            initial={{ x: '100%' }} 
-            animate={{ x: 0 }} 
-            exit={{ x: '100%' }} 
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }} 
-            className="fixed top-0 right-0 h-full w-80 bg-[var(--bg-card)] border-l border-[var(--border-color)] z-[70] p-6 shadow-2xl flex flex-col overflow-y-auto" 
+          <motion.div
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed top-0 right-0 h-full w-80 bg-[var(--bg-card)] border-l border-[var(--border-color)] z-[70] p-6 shadow-2xl flex flex-col overflow-y-auto"
           >
             <div className="flex justify-between items-center mb-10">
               <h2 className="text-xl font-black uppercase tracking-tighter text-[var(--text-main)]">System Menu</h2>
@@ -81,15 +86,15 @@ const NavigationMenu = ({ isOpen, onClose }) => {
                 <SafeIcon icon={FiIcons.FiX} />
               </button>
             </div>
-            
+
             <div className="flex-1 space-y-6">
               <div className="space-y-2">
                 <p className="text-[10px] font-black text-[var(--text-muted)] uppercase px-2 tracking-widest">Navigation</p>
                 {visibleItems.map(item => (
-                  <NavLink 
-                    key={item.path} 
-                    to={item.path} 
-                    onClick={onClose} 
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    onClick={onClose}
                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-[var(--bg-main)] text-[var(--text-main)] transition-all group"
                   >
                     <div className="w-8 h-8 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-[var(--accent)] group-hover:bg-[var(--accent)] group-hover:text-[var(--accent-foreground)] transition-colors">
@@ -117,7 +122,7 @@ const NavigationMenu = ({ isOpen, onClose }) => {
                   </div>
                 )}
               </div>
-              
+
               <div className="pt-6 border-t border-[var(--border-color)]">
                 <p className="text-[10px] font-black text-[var(--text-muted)] uppercase px-2 mb-4 tracking-widest">Share Context</p>
                 <div className="bg-white p-6 rounded-2xl flex flex-col items-center gap-4 border border-[var(--border-color)] shadow-inner">
@@ -129,9 +134,9 @@ const NavigationMenu = ({ isOpen, onClose }) => {
                 </div>
               </div>
             </div>
-            
-            <div className="pt-6 mt-auto border-t border-[var(--border-color)] text-center text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest"> 
-              BeAgile v2.5.0-Pro 
+
+            <div className="pt-6 mt-auto border-t border-[var(--border-color)] text-center text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">
+              BeAgile v2.5.0-Pro
             </div>
           </motion.div>
         </>

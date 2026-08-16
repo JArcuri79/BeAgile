@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     if (session?.user) {
       const userRole = session.user.role === 'superuser' ? 'global_admin' : (session.user.role || 'user');
-      setCurrentUser({ ...session.user, role: userRole });
+      setCurrentUser({ ...session.user, role: userRole, company: session.user.company || null });
       setRole(userRole);
     } else if (!isPending) {
       setCurrentUser(null);

@@ -1,8 +1,9 @@
 import React from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Outlet, useParams } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
+import { WorkspaceProvider } from './contexts/WorkspaceContext';
 
 import Header from './components/layout/Header';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,7 @@ import Kanban from './pages/Kanban';
 import Changelog from './pages/Changelog';
 import AppSettings from './pages/AppSettings';
 import Users from './pages/Users';
+import WorkspaceUsers from './pages/WorkspaceUsers';
 import Projects from './pages/Projects';
 import Companies from './pages/Companies';
 import AccountSettings from './pages/AccountSettings';
@@ -28,9 +30,17 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
   const { role, isLoading } = useAuth();
   if (isLoading) return null;
   if (!allowedRoles.includes(role)) {
-    return <Navigate to="/roadmap" replace />;
+    return <Navigate to="/projects" replace />;
   }
   return children;
+};
+
+const WorkspaceLayout = () => {
+  return (
+    <WorkspaceProvider>
+      <Outlet />
+    </WorkspaceProvider>
+  );
 };
 
 const AppRoutes = () => {
@@ -39,27 +49,30 @@ const AppRoutes = () => {
       <Header />
       <main className="flex-1 overflow-x-hidden">
         <Routes>
-          <Route path="/" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><Dashboard /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><Projects /></ProtectedRoute>} />
-          <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><Companies /></ProtectedRoute>} />
-          <Route path="/account" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><AccountSettings /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
-          
-          <Route path="/roadmap" element={<Roadmap />} />
-          <Route path="/bugs" element={<Bugs />} />
-          <Route path="/changelog" element={<Changelog />} />
-          
-          {/* Changed allowedRoles to include crew for the following paths */}
-          <Route path="/project-list" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><ProjectList /></ProtectedRoute>} />
-          <Route path="/my-list" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><MyList /></ProtectedRoute>} />
-          <Route path="/kanban" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><Kanban /></ProtectedRoute>} />
-          <Route path="/links" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><Links /></ProtectedRoute>} />
-          <Route path="/notes" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><Notes /></ProtectedRoute>} />
-          
-          <Route path="/settings/app" element={<ProtectedRoute allowedRoles={['crew', 'admin', 'global_admin']}><AppSettings /></ProtectedRoute>} />
-          <Route path="/settings/users" element={<ProtectedRoute allowedRoles={['admin', 'global_admin']}><Users /></ProtectedRoute>} />
-          
-          <Route path="*" element={<Navigate to="/roadmap" replace />} />
+          <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><Companies /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute allowedRoles={['global_admin']}><Users /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><Projects /></ProtectedRoute>} />
+
+          <Route path="/:companySlug/projects" element={<ProtectedRoute allowedRoles={['admin', 'global_admin', 'crew', 'user']}><Projects /></ProtectedRoute>} />
+
+          <Route path="/:companySlug/:workspaceSlug" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><WorkspaceLayout /></ProtectedRoute>}>
+            <Route index element={<Dashboard />} />
+            <Route path="roadmap" element={<Roadmap />} />
+            <Route path="bugs" element={<Bugs />} />
+            <Route path="project-list" element={<ProjectList />} />
+            <Route path="my-list" element={<MyList />} />
+            <Route path="kanban" element={<Kanban />} />
+            <Route path="changelog" element={<Changelog />} />
+            <Route path="links" element={<Links />} />
+            <Route path="notes" element={<Notes />} />
+            <Route path="account" element={<AccountSettings />} />
+            <Route path="settings/app" element={<AppSettings />} />
+            <Route path="users" element={<WorkspaceUsers />} />
+            <Route path="*" element={<Navigate to="." replace />} />
+          </Route>
+
+          <Route path="*" element={<Navigate to="/projects" replace />} />
         </Routes>
       </main>
     </div>
