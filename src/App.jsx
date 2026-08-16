@@ -22,6 +22,7 @@ import AccountSettings from './pages/AccountSettings';
 import Login from './pages/Login';
 import PasswordGate from './components/PasswordGate';
 import ResetPassword from './pages/ResetPassword';
+import Landing from './pages/Landing';
 import Links from './pages/Links';
 import Notes from './pages/Notes';
 
@@ -51,6 +52,7 @@ const AppRoutes = () => {
       <Header />
       <main className="flex-1 overflow-x-hidden">
         <Routes>
+          <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/companies" element={<ProtectedRoute allowedRoles={['global_admin']}><PasswordGate title="Manage Companies"><Companies /></PasswordGate></ProtectedRoute>} />
@@ -77,7 +79,7 @@ const AppRoutes = () => {
             <Route path="*" element={<Navigate to="." replace />} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/projects" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </div>
