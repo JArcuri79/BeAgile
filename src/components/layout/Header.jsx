@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useParams } from 'react-router-dom';
+import { NavLink, useMatch } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import NavigationMenu from './NavigationMenu';
@@ -12,12 +12,14 @@ const Header = () => {
   const { isDark, toggleTheme, logoUrl, companyName } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
-  const { companySlug, workspaceSlug } = useParams();
+  const workspaceMatch = useMatch('/:companySlug/:workspaceSlug/*');
+  const companySlug = workspaceMatch?.params?.companySlug;
+  const workspaceSlug = workspaceMatch?.params?.workspaceSlug;
 
   const base = companySlug && workspaceSlug ? `/${companySlug}/${workspaceSlug}` : '';
 
   const navLinks = [
-    { name: 'Dashboard', path: base || '/projects', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
@@ -28,7 +30,7 @@ const Header = () => {
     { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
   ].filter(link => link.allowedRoles.includes(role));
 
-  const homeLink = base || '/projects';
+  const homeLink = '/';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border-color)] bg-[var(--bg-card)]">
