@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,6 +9,11 @@ const Bugs = () => {
   const { role } = useAuth();
   const { bugs, addBug, addToDevList, updateEisenhower, sortDataByEisenhower, kanban } = useData();
   const [selectedItem, setSelectedItem] = useState(bugs[0]);
+
+  useEffect(() => {
+    if (bugs.length && !selectedItem) setSelectedItem(bugs[0]);
+  }, [bugs]);
+
   const [isAdding, setIsAdding] = useState(false);
   const [newItem, setNewItem] = useState({ title: '', desc: '', severity: 'High' });
   const [searchQuery, setSearchQuery] = useState('');

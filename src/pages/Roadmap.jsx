@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useData } from '../contexts/DataContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,10 @@ const Roadmap = () => {
   const isLeadership = ['admin', 'global_admin'].includes(role);
   const canAdd = ['user', 'crew', 'admin', 'global_admin'].includes(role);
   const isPushed = kanban.some(k => k.id === selectedItem?.id);
+
+  useEffect(() => {
+    if (roadmap.length && !selectedItem) setSelectedItem(roadmap[0]);
+  }, [roadmap]);
 
   const filteredRoadmap = useMemo(() => {
     return roadmap.filter(item => {

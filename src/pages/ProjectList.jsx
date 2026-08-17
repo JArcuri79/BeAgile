@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -10,6 +10,10 @@ const ProjectList = () => {
   const { kanban, assignToMe, addKanbanItem } = useData();
   const devItems = kanban.filter(k => k.column === 'Planned');
   const [selectedItem, setSelectedItem] = useState(devItems[0]);
+
+  useEffect(() => {
+    if (devItems.length && !selectedItem) setSelectedItem(devItems[0]);
+  }, [kanban]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({ title: '', desc: '', type: 'Feature' });
   const [searchQuery, setSearchQuery] = useState('');

@@ -18,10 +18,29 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
-    }
-  }, [isAuthenticated, navigate, from]);
+    if (!isAuthenticated || !currentUser) return;
+
+    const redirectToWorkspace = async () => {
+      try {
+        const res = await fetch('/api/workspaces', { credentials: 'include' });
+        if (!res.ok) {
+          navigate(from, { replace: true });
+          return;
+        }
+        const data = await res.json();
+        const ws = data.workspaces?.[0];
+        if (ws?.company_slug && ws?.slug) {
+          navigate(`/${ws.company_slug}/${ws.slug}`, { replace: true });
+        } else {
+          navigate(from, { replace: true });
+        }
+      } catch {
+        navigate(from, { replace: true });
+      }
+    };
+
+    redirectToWorkspace();
+  }, [isAuthenticated, currentUser, from, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -30,9 +49,7 @@ const Login = () => {
 
     try {
       const result = await login(email, password);
-      if (result.success) {
-        navigate(from, { replace: true });
-      } else {
+      if (!result.success) {
         setError(result.error);
       }
     } catch (err) {
