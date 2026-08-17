@@ -36,20 +36,6 @@ const Header = () => {
     <header className="sticky top-0 z-50 w-full border-b border-[var(--border-color)] bg-[var(--bg-card)]">
       <div className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 sm:px-8 py-1.5 text-[10px] flex justify-between items-center font-black tracking-widest uppercase transition-colors">
         <span className="hidden sm:inline">{companySlug && workspaceSlug ? `${companySlug} / ${workspaceSlug}` : 'Global Infrastructure Node'}</span>
-        <div className="flex gap-2 sm:gap-4 items-center overflow-x-auto">
-          <span className="opacity-70 hidden md:inline">Simulation Context:</span>
-          <div className="flex gap-1 bg-black/20 p-0.5 rounded-md">
-            {['guest', 'user', 'crew', 'admin', 'global_admin'].map(r => (
-              <button
-                key={r}
-                onClick={() => switchRole(r)}
-                className={`px-2 sm:px-3 py-0.5 rounded transition-all whitespace-nowrap ${role === r ? 'bg-white text-black shadow-sm' : 'hover:bg-white/10'}`}
-              >
-                {r.replace('_', ' ')}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
 
       <div className="w-full px-8 h-16 flex items-center justify-between border-b border-[var(--border-color)]">
