@@ -41,7 +41,9 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 const WorkspaceLayout = () => {
   return (
     <WorkspaceProvider>
-      <Outlet />
+      <DataProvider>
+        <Outlet />
+      </DataProvider>
     </WorkspaceProvider>
   );
 };
@@ -63,7 +65,7 @@ const AppRoutes = () => {
 
           <Route path="/:companySlug/projects" element={<ProtectedRoute allowedRoles={['admin', 'global_admin', 'crew', 'user']}><PasswordGate title="Manage Workspaces"><Projects /></PasswordGate></ProtectedRoute>} />
 
-          <Route path="/:companySlug/:workspaceSlug" element={<ProtectedRoute allowedRoles={['user', 'crew', 'admin', 'global_admin']}><WorkspaceLayout /></ProtectedRoute>}>
+          <Route path="/:companySlug/:workspaceSlug" element={<ProtectedRoute allowedRoles={['guest', 'user', 'crew', 'admin', 'global_admin']}><WorkspaceLayout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="roadmap" element={<Roadmap />} />
             <Route path="bugs" element={<Bugs />} />
@@ -90,11 +92,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <DataProvider>
-          <Router>
-            <AppRoutes />
-          </Router>
-        </DataProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
       </AuthProvider>
     </ThemeProvider>
   );

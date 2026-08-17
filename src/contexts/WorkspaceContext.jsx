@@ -24,14 +24,27 @@ export const WorkspaceProvider = ({ children }) => {
     return res.json();
   };
 
+  const isGuest = !currentUser;
+
   const loadCompanies = async () => {
-    const data = await fetchJson('/api/companies');
+    const endpoint = isGuest ? '/api/public/companies' : '/api/companies';
+    const data = await fetchJson(endpoint);
     setCompanies(data.companies || []);
   };
 
   const loadWorkspaces = async () => {
-    const data = await fetchJson('/api/workspaces');
+    const endpoint = isGuest ? '/api/public/workspaces' : '/api/workspaces';
+    const data = await fetchJson(endpoint);
     setWorkspaces(data.workspaces || []);
+  };
+
+  const loadMembers = async (workspaceId) => {
+    if (isGuest || !workspaceId) {
+      setMembers([]);
+      return;
+    }
+    const mem = await fetchJson(`/api/workspace-members?workspace_id=${workspaceId}`);
+    setMembers(mem.members || []);
   };
 
   const loadCurrent = async () => {
@@ -50,8 +63,7 @@ export const WorkspaceProvider = ({ children }) => {
     const workspace = workspaces.find((w) => w.slug === workspaceSlug && w.company_id === company?.id);
     if (workspace) {
       setCurrentWorkspace(workspace);
-      const mem = await fetchJson(`/api/workspace-members?workspace_id=${workspace.id}`);
-      setMembers(mem.members || []);
+      await loadMembers(workspace.id);
     }
   };
 

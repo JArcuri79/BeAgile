@@ -1,80 +1,178 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { useWorkspace } from './WorkspaceContext';
 import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
-export const MOCK_USERS = [
-  { id: 'u1', name: 'Admin User', email: 'admin@beagile.com', role: 'Admin', status: 'Active', lastSeen: '2 mins ago', company: 'Acme Corp' },
-  { id: 'u2', name: 'Sarah Jenkins', email: 'sarah.j@beagile.com', role: 'Team Member', status: 'Active', lastSeen: '1 hour ago', company: 'Acme Corp' },
-  { id: 'u3', name: 'John Marcus', email: 'j.marcus@beagile.com', role: 'End User', status: 'Inactive', lastSeen: '3 days ago', company: 'Globex Inc' },
-  { id: 'u4', name: 'Elena Vance', email: 'evance@beagile.com', role: 'Team Member', status: 'Active', lastSeen: 'Online', company: 'Globex Inc' },
-];
+const columnMap = {
+  project_list: 'Planned',
+  my_list: 'In Progress',
+  completed: 'Completed',
+  reviewed: 'Reviewed',
+};
 
-const initialProjects = [
-  { 
-    id: 1, 
-    name: 'Alpha Redesign', 
-    company: 'Acme Corp', 
-    startDate: '2023-10-01', 
-    expectedEndDate: '2024-03-01', 
-    actualEndDate: '',
-    status: 'In Progress', 
-    progress: 65 
-  },
-  { id: 2, name: 'Beta Launch', company: 'Acme Corp', startDate: '2023-11-01', expectedEndDate: '2024-05-01', actualEndDate: '', status: 'Planned', progress: 10 },
-];
+const stageToColumn = (stage) => columnMap[stage] || 'Planned';
 
-const initialCompanies = [
-  { id: 1, name: 'Acme Corp', adminName: 'John Doe', adminEmail: 'john@acme.com', adminPhone: '+1-555-0100', workspacesUsed: 2, workspacesAllowed: 5 },
-  { id: 2, name: 'Globex Inc', adminName: 'Jane Smith', adminEmail: 'jane@globex.com', adminPhone: '+1-555-0200', workspacesUsed: 4, workspacesAllowed: 5 },
-];
-
-const initialRoadmap = [
-  { id: 1, title: 'Dark Mode Support', desc: 'Add system-wide dark mode', status: 'Planned', category: 'Feature', upvotes: 45, comments: 12, eisenhower: '' },
-  { id: 2, title: 'API Integration', desc: 'External data sync', status: 'Planned', category: 'Dev', upvotes: 30, comments: 5, eisenhower: '' }
-];
-
-const initialBugs = [
-  { id: 101, title: 'Login Page Crash', desc: 'App crashes on mobile login', status: 'Unverified', severity: 'High', upvotes: 8, comments: 2, eisenhower: '' }
-];
-
-const initialKanban = [
-  { id: 201, title: 'Dark Mode Support', column: 'Planned', assignee: 'Unassigned', type: 'Feature' },
-  { id: 202, title: 'Legacy Cleanup', column: 'Completed', assignee: 'Sarah Jenkins', type: 'Task' }
-];
-
-const initialChangelog = [
-  { id: 301, version: 'v1.2.0', date: '2023-10-25', author: 'Alex', tag: 'Feature Added', note: 'Introduced Kanban boards.' },
-  { id: 302, version: 'v1.2.1', date: '2023-11-05', author: 'Admin User', tag: 'Bug Fix', note: 'Legacy Cleanup completed.' }
-];
+const columnToStage = (col) => {
+  const found = Object.entries(columnMap).find(([, c]) => c === col);
+  return found ? found[0] : 'project_list';
+};
 
 export const DataProvider = ({ children }) => {
-  const [projects, setProjects] = useState(initialProjects);
-  const [activeProject, setActiveProject] = useState(initialProjects[0]);
-  const [companies, setCompanies] = useState(initialCompanies);
-  const [roadmap, setRoadmap] = useState(initialRoadmap);
-  const [bugs, setBugs] = useState(initialBugs);
-  const [kanban, setKanban] = useState(initialKanban);
-  const [changelog, setChangelog] = useState(initialChangelog);
+  const { currentUser } = useAuth();
+  const { currentWorkspace, members } = useWorkspace() || {};
+  const workspaceId = currentWorkspace?.id;
+  const companyId = currentWorkspace?.company_id;
+
+  const [tasks, setTasks] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [links, setLinks] = useState([]);
   const [notes, setNotes] = useState([]);
-  const { currentUser } = useAuth();
+  const [loading, setLoading] = useState(false);
 
-  const updateProjectDates = (id, field, value) => {
-    setProjects(projects.map(p => p.id === id ? { ...p, [field]: value } : p));
-    if (activeProject?.id === id) setActiveProject({ ...activeProject, [field]: value });
+  const refreshTasks = useCallback(async () => {
+    if (!workspaceId) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/public/tasks?workspace_id=${workspaceId}`, { credentials: 'include' });
+      const data = await res.json();
+      setTasks(data.tasks || []);
+    } catch (e) {
+      console.error('Failed to load tasks', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [workspaceId]);
+
+  useEffect(() => {
+    refreshTasks();
+  }, [refreshTasks]);
+
+  const addTask = async (item) => {
+    if (!workspaceId || !companyId) return;
+    const body = {
+      company_id: companyId,
+      workspace_id: workspaceId,
+      stage: item.stage,
+      type: item.type,
+      title: item.title,
+      description: item.desc ?? item.description ?? '',
+      category: item.category ?? '',
+      severity: item.severity ?? '',
+      priority: item.priority ?? '',
+    };
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.task) setTasks(prev => [...prev, data.task]);
+      return data.task;
+    } catch (e) {
+      console.error('Failed to add task', e);
+    }
   };
 
-  const addProject = (project) => {
-    const newProject = {
-      ...project,
-      id: Date.now(),
-      expectedEndDate: project.expectedEndDate || '',
-      actualEndDate: '',
-      progress: 0
+  const updateTask = async (id, updates) => {
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, ...updates }),
+      });
+      const data = await res.json();
+      if (data.task) setTasks(prev => prev.map(t => t.id === data.task.id ? data.task : t));
+      return data.task;
+    } catch (e) {
+      console.error('Failed to update task', e);
+    }
+  };
+
+  const deleteTask = async (id) => {
+    try {
+      await fetch(`/api/tasks?id=${id}`, { method: 'DELETE', credentials: 'include' });
+      setTasks(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      console.error('Failed to delete task', e);
+    }
+  };
+
+  const addComment = async (taskId, text) => {
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId, text }),
+      });
+      const data = await res.json();
+      return data.comment;
+    } catch (e) {
+      console.error('Failed to add comment', e);
+    }
+  };
+
+  const addVote = async (taskId) => {
+    try {
+      const res = await fetch('/api/votes', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: taskId }),
+      });
+      const data = await res.json();
+      if (data.task) setTasks(prev => prev.map(t => t.id === data.task.id ? data.task : t));
+    } catch (e) {
+      console.error('Failed to vote', e);
+    }
+  };
+
+  const addRoadmap = (item) => addTask({ ...item, stage: 'roadmap', type: 'feature' });
+  const addBug = (item) => addTask({ ...item, stage: 'bugs_log', type: 'bug' });
+  const addKanbanItem = (item) => addTask({ ...item, stage: 'project_list', type: item.type || 'task' });
+
+  const addToDevList = async (item, type) => {
+    await updateTask(item.id, { stage: 'project_list' });
+  };
+
+  const assignToMe = async (itemId) => {
+    await updateTask(itemId, {
+      stage: 'my_list',
+      allocated_to: currentUser?.id,
+      allocated_to_name: currentUser?.name || currentUser?.email || 'User',
+      allocated_to_role: currentUser?.role || 'user',
+    });
+  };
+
+  const markCompleted = (itemId) => updateTask(itemId, { stage: 'completed' });
+  const markReviewed = (itemId) => updateTask(itemId, { stage: 'reviewed' });
+  const publishToChangelog = (item) => updateTask(item.id, { stage: 'changelog' });
+
+  const updateKanbanColumn = (id, newColumn) => {
+    const stage = columnToStage(newColumn);
+    return updateTask(id, { stage });
+  };
+
+  const updateTaskAssignee = async (id, assigneeName) => {
+    const user = members?.find(m => m.name === assigneeName);
+    const updates = {
+      allocated_to: user?.id,
+      allocated_to_name: user?.name || assigneeName,
+      allocated_to_role: user?.role || 'user',
     };
-    setProjects(prev => [...prev, newProject]);
+    await updateTask(id, updates);
+  };
+
+  const pushAllReviewedToChangelog = async () => {
+    const reviewed = tasks.filter(t => t.stage === 'reviewed');
+    for (const task of reviewed) {
+      await updateTask(task.id, { stage: 'changelog' });
+    }
   };
 
   const updateEisenhower = (id, type, quadrant) => {
@@ -84,134 +182,81 @@ export const DataProvider = ({ children }) => {
       'Urgent & Not Important': 'DELEGATE',
       'Not Urgent & Not Important': 'ELIMINATE'
     };
-    
-    if (type === 'roadmap') {
-      setRoadmap(roadmap.map(r => r.id === id ? { ...r, eisenhower: quadrant, category: priorityMap[quadrant] || r.category } : r));
-    } else {
-      setBugs(bugs.map(b => b.id === id ? { ...b, eisenhower: quadrant, severity: quadrant === 'Urgent & Important' ? 'High' : b.severity } : b));
-    }
+    const category = type === 'roadmap' ? (priorityMap[quadrant] || '') : '';
+    const severity = type !== 'roadmap' && quadrant === 'Urgent & Important' ? 'High' : '';
+    updateTask(id, { priority: quadrant, category, severity });
   };
 
   const sortDataByEisenhower = (type) => {
     const weight = { 'Urgent & Important': 4, 'Important & Not Urgent': 3, 'Urgent & Not Important': 2, 'Not Urgent & Not Important': 1, '': 0 };
-    if (type === 'roadmap') {
-      setRoadmap([...roadmap].sort((a, b) => weight[b.eisenhower || ''] - weight[a.eisenhower || '']));
-    } else {
-      setBugs([...bugs].sort((a, b) => weight[b.eisenhower || ''] - weight[a.eisenhower || '']));
-    }
+    const stage = type === 'roadmap' ? 'roadmap' : 'bugs_log';
+    setTasks(prev => {
+      const sorted = [...prev].sort((a, b) => (weight[b.priority || ''] || 0) - (weight[a.priority || ''] || 0));
+      return sorted;
+    });
   };
 
-  const addToDevList = (item, type) => {
-    if (!kanban.find(k => k.id === item.id)) {
-      setKanban(prev => [...prev, { ...item, id: item.id || Date.now(), column: 'Planned', assignee: 'Unassigned', type: type }]);
-    }
-  };
+  const addProject = (project) => setProjects(prev => [...prev, { ...project, id: Date.now(), expectedEndDate: project.expectedEndDate || '', actualEndDate: '', progress: 0 }]);
+  const updateProjectDates = () => {};
 
-  const addRoadmap = (item) => {
-    setRoadmap(prev => [...prev, { ...item, id: Date.now(), status: 'Planned', upvotes: 0, comments: 0, eisenhower: '' }]);
-  };
+  const addCompany = (company) => setCompanies(prev => [...prev, { ...company, id: Date.now(), workspacesUsed: 0, workspacesAllowed: 5 }]);
+  const updateCompany = (id, formData) => setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...formData } : c));
+  const deleteCompany = (id) => setCompanies(prev => prev.filter(c => c.id !== id));
+  const updateCompanyAllowance = (id, allowance) => setCompanies(prev => prev.map(c => c.id === id ? { ...c, workspacesAllowed: allowance } : c));
 
-  const addBug = (item) => {
-    setBugs(prev => [...prev, { ...item, id: Date.now(), status: 'Unverified', upvotes: 0, comments: 0, eisenhower: '' }]);
-  };
+  const addNote = (note) => setNotes(prev => [...prev, { ...note, id: Date.now(), createdAt: new Date().toISOString() }]);
+  const addLink = (link) => setLinks(prev => [...prev, { ...link, id: Date.now(), createdAt: new Date().toISOString() }]);
 
-  const addKanbanItem = (item) => {
-    setKanban(prev => [
-      ...prev,
-      {
-        ...item,
-        id: item.id || Date.now(),
-        column: 'Planned',
-        assignee: 'Unassigned',
-        type: item.type || 'Task'
-      }
-    ]);
-  };
+  const roadmap = useMemo(() =>
+    tasks.filter(t => t.stage === 'roadmap').map(t => ({
+      ...t,
+      desc: t.description,
+      status: t.stage,
+      eisenhower: t.priority || '',
+    })),
+  [tasks]);
 
-  const updateTaskAssignee = (itemId, newAssignee) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, assignee: newAssignee } : k));
-  const assignToMe = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'In Progress', assignee: currentUser?.name || 'Admin User', assigneeRole: currentUser?.role || '' } : k));
-  const markCompleted = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'Completed' } : k));
-  const markReviewed = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'Reviewed' } : k));
-  const updateKanbanColumn = (id, newColumn) => setKanban(kanban.map(k => k.id === id ? { ...k, column: newColumn } : k));
+  const bugs = useMemo(() =>
+    tasks.filter(t => t.stage === 'bugs_log').map(t => ({
+      ...t,
+      desc: t.description,
+      status: t.stage,
+      eisenhower: t.priority || '',
+    })),
+  [tasks]);
 
-  const publishToChangelog = (item) => {
-    setKanban(prev => prev.filter(k => k.id !== item.id));
-    setChangelog([{ id: Date.now(), version: 'Latest', date: new Date().toISOString().split('T')[0], author: 'Admin User', tag: 'Released', note: `Published: ${item.title}` }, ...changelog]);
-  };
+  const kanban = useMemo(() =>
+    tasks.filter(t => ['project_list', 'my_list', 'completed', 'reviewed'].includes(t.stage)).map(t => ({
+      ...t,
+      column: stageToColumn(t.stage),
+      assignee: t.allocated_to_name || 'Unassigned',
+    })),
+  [tasks]);
 
-  const pushAllReviewedToChangelog = () => {
-    const reviewed = kanban.filter(k => k.column === 'Reviewed');
-    if (!reviewed.length) return;
-
-    const newEntries = reviewed.map((item, idx) => ({
-      id: Date.now() + idx,
+  const changelog = useMemo(() =>
+    tasks.filter(t => t.stage === 'changelog').map(t => ({
+      ...t,
       version: 'Latest',
-      date: new Date().toISOString().split('T')[0],
-      author: 'Admin User',
-      tag: 'Released',
-      note: `Published: ${item.title}`
-    }));
+      date: t.released_at ? t.released_at.split('T')[0] : '',
+      author: t.submitted_by_name || 'Unknown',
+      tag: t.type || 'Released',
+      note: t.title,
+    })),
+  [tasks]);
 
-    setKanban(prev => prev.filter(k => k.column !== 'Reviewed'));
-    setChangelog(prev => [...newEntries, ...prev]);
-  };
-
-  const addNote = (note) => {
-    setNotes(prev => [
-      ...prev,
-      {
-        ...note,
-        id: Date.now(),
-        createdAt: new Date().toISOString()
-      }
-    ]);
-  };
-
-  const addLink = (link) => {
-    setLinks(prev => [
-      ...prev,
-      {
-        ...link,
-        id: Date.now(),
-        createdAt: new Date().toISOString()
-      }
-    ]);
-  };
-
-  const addCompany = (company) => {
-    setCompanies(prev => [
-      ...prev,
-      {
-        ...company,
-        id: Date.now(),
-        workspacesUsed: 0,
-        workspacesAllowed: 5
-      }
-    ]);
-  };
-
-  const updateCompany = (id, formData) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, ...formData } : c));
-  };
-
-  const deleteCompany = (id) => {
-    setCompanies(prev => prev.filter(c => c.id !== id));
-  };
-
-  const updateCompanyAllowance = (id, allowance) => {
-    setCompanies(prev => prev.map(c => c.id === id ? { ...c, workspacesAllowed: allowance } : c));
-  };
+  const activeProject = currentWorkspace || projects[0] || null;
 
   return (
     <DataContext.Provider value={{
-      projects, setActiveProject, activeProject, updateProjectDates,
+      projects, setActiveProject: () => {}, activeProject, updateProjectDates,
       companies, setCompanies,
       roadmap, bugs, kanban, changelog, links, notes,
+      tasks, members, loading, refreshTasks,
       updateEisenhower, sortDataByEisenhower, addToDevList,
       assignToMe, markCompleted, markReviewed, updateTaskAssignee, publishToChangelog, updateKanbanColumn,
       addKanbanItem, addNote, addLink, pushAllReviewedToChangelog,
       addProject, addCompany, updateCompany, deleteCompany, updateCompanyAllowance,
-      addRoadmap, addBug
+      addRoadmap, addBug, addTask, updateTask, deleteTask, addComment, addVote,
     }}>
       {children}
     </DataContext.Provider>
@@ -220,46 +265,6 @@ export const DataProvider = ({ children }) => {
 
 export const useData = () => {
   const ctx = useContext(DataContext);
-  const ws = useWorkspace();
-  const workspaceId = ws?.currentWorkspace?.id;
-
-  const filter = (arr) => {
-    if (!Array.isArray(arr)) return arr;
-    if (!workspaceId) return arr;
-    return arr.filter(item => item && (item.workspace_id === workspaceId || item.workspace_id === undefined || item.workspace_id === null));
-  };
-
-  const filtered = {
-    projects: filter(ctx.projects),
-    roadmap: filter(ctx.roadmap),
-    bugs: filter(ctx.bugs),
-    kanban: filter(ctx.kanban),
-    changelog: filter(ctx.changelog),
-    links: filter(ctx.links),
-    notes: filter(ctx.notes),
-    companies: filter(ctx.companies),
-    activeProject: null,
-    members: ws?.members || [],
-  };
-
-  filtered.activeProject = filtered.projects.find(p => p.id === ctx.activeProject?.id)
-    || filtered.projects[0]
-    || null;
-
-  const withWorkspace = (item) => ({ ...item, workspace_id: workspaceId });
-
-  return {
-    ...ctx,
-    ...filtered,
-    workspaceId,
-    members: ws?.members || [],
-    addProject: (p) => workspaceId ? ctx.addProject(withWorkspace(p)) : ctx.addProject(p),
-    addKanbanItem: (item) => workspaceId ? ctx.addKanbanItem(withWorkspace(item)) : ctx.addKanbanItem(item),
-    addToDevList: (item, type) => workspaceId ? ctx.addToDevList(withWorkspace(item), type) : ctx.addToDevList(item, type),
-    addNote: (n) => workspaceId ? ctx.addNote(withWorkspace(n)) : ctx.addNote(n),
-    addLink: (l) => workspaceId ? ctx.addLink(withWorkspace(l)) : ctx.addLink(l),
-    addRoadmap: (item) => workspaceId ? ctx.addRoadmap(withWorkspace(item)) : ctx.addRoadmap(item),
-    addBug: (item) => workspaceId ? ctx.addBug(withWorkspace(item)) : ctx.addBug(item),
-    addCompany: (c) => workspaceId ? ctx.addCompany({ ...c, id: Date.now() }) : ctx.addCompany(c),
-  };
+  if (!ctx) throw new Error('useData must be used within DataProvider');
+  return ctx;
 };

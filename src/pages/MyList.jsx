@@ -1,20 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { useData, MOCK_USERS } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as FiIcons from 'react-icons/fi';
 import SafeIcon from '../common/SafeIcon';
 
 const MyList = () => {
-  const { kanban, markCompleted, markReviewed, updateTaskAssignee } = useData();
+  const { kanban, markCompleted, markReviewed, updateTaskAssignee, members } = useData();
   const { currentUser } = useAuth();
   const [selectedId, setSelectedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
 
   const myItems = useMemo(() => kanban.filter(k =>
-    k.assignee === (currentUser?.name || 'Admin User') &&
-    (k.assigneeRole || k.role || '') === (currentUser?.role || '') &&
+    k.allocated_to === currentUser?.id &&
+    (k.allocated_to_role || '') === (currentUser?.role || '') &&
     (k.column === 'In Progress' || k.column === 'Completed')
   ), [kanban, currentUser]);
   
@@ -100,10 +100,10 @@ const MyList = () => {
                     <div className="flex items-center gap-4">
                       <div className="space-y-1">
                         <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Assignee</p>
-                        <select value={selectedItem.assignee} onChange={(e) => updateTaskAssignee(selectedItem.id, e.target.value)} className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20" >
+                        <select value={selectedItem.allocated_to_name || 'Unassigned'} onChange={(e) => updateTaskAssignee(selectedItem.id, e.target.value)} className="bg-[var(--bg-main)] border border-[var(--border-color)] rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-[var(--accent)]/20" >
                           <option value="Unassigned">Unassigned</option>
-                          {MOCK_USERS.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
-                          {currentUser?.name && !MOCK_USERS.some(u => u.name === currentUser.name) && (
+                          {members?.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                          {currentUser?.name && !members?.some(u => u.name === currentUser.name) && (
                             <option value={currentUser.name}>{currentUser.name} ({currentUser.role})</option>
                           )}
                         </select>

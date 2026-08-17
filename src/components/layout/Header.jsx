@@ -40,6 +40,7 @@ const Header = () => {
   }, []);
 
   const navLinks = [
+    { name: 'Home', path: '/', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
@@ -96,12 +97,6 @@ const Header = () => {
 
       <div className="w-full px-8 h-12 flex items-center gap-8 bg-[var(--bg-card)] overflow-x-auto">
         <nav className="flex gap-8 h-full whitespace-nowrap">
-          {(role === 'guest' || role === 'user') && (
-            <a href={companyName} target="_blank" rel="noopener noreferrer" className="h-full flex items-center gap-2 px-1 text-sm font-black tracking-tight text-[var(--text-main)] hover:text-[var(--accent)] transition-all border-b-2 border-transparent hover:border-[var(--accent)]">
-              <SafeIcon icon={FiIcons.FiGlobe} /> Home
-            </a>
-          )}
-
           {navLinks.map(link => (
             <NavLink
               key={link.path}

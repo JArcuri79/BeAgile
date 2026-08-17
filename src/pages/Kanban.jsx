@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useData, MOCK_USERS } from '../contexts/DataContext';
+import { useData } from '../contexts/DataContext';
 import { useAuth } from '../contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as FiIcons from 'react-icons/fi';
@@ -7,7 +7,7 @@ import SafeIcon from '../common/SafeIcon';
 
 const Kanban = () => {
   const { role } = useAuth();
-  const { kanban, updateKanbanColumn, publishToChangelog, pushAllReviewedToChangelog, updateTaskAssignee } = useData();
+  const { kanban, updateKanbanColumn, publishToChangelog, pushAllReviewedToChangelog, updateTaskAssignee, members } = useData();
   const [selectedItem, setSelectedItem] = useState(null);
   const columns = ['Planned', 'In Progress', 'Completed', 'Reviewed'];
 
@@ -86,9 +86,9 @@ const Kanban = () => {
                   </div>
                   <div className="space-y-4">
                     <label className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em] block">Assignee</label>
-                    <select value={selectedItem.assignee} onChange={(e) => updateTaskAssignee(selectedItem.id, e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10" >
+                    <select value={selectedItem.allocated_to_name || 'Unassigned'} onChange={(e) => updateTaskAssignee(selectedItem.id, e.target.value)} className="w-full bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl px-4 py-3 text-xs font-bold focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/10" >
                       <option value="Unassigned">Unassigned</option>
-                      {MOCK_USERS.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
+                      {members?.map(u => <option key={u.id} value={u.name}>{u.name}</option>)}
                     </select>
                   </div>
                   <div className="p-5 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-color)] space-y-3">
@@ -111,10 +111,10 @@ const Kanban = () => {
                   </h2>
                 </div>
                 <div className="flex-1 p-6 space-y-3 overflow-y-auto custom-scrollbar">
-                  {MOCK_USERS.map(user => (
+                  {members?.map(user => (
                     <div key={user.id} className="bg-[var(--bg-card)] p-4 rounded-2xl border border-[var(--border-color)] shadow-sm flex items-center gap-3 hover:border-[var(--accent)]/50 hover:shadow-md transition-all group">
                       <div className="w-10 h-10 rounded-xl bg-[var(--bg-main)] text-[var(--accent)] flex items-center justify-center font-black text-sm shadow-inner group-hover:bg-[var(--accent)] group-hover:text-white transition-colors">
-                        {user.name.charAt(0)}
+                        {user.name?.charAt(0) || '?'}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <h4 className="font-bold text-[11px] text-[var(--text-main)] truncate">{user.name}</h4>
