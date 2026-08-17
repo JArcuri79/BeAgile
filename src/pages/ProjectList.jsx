@@ -61,7 +61,7 @@ const ProjectList = () => {
     document.body.removeChild(link);
   };
 
-  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
+  const isPrivileged = true;
 
   return (
     <div className="w-full h-[calc(100vh-124px)] flex overflow-hidden">

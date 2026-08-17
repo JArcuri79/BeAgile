@@ -75,8 +75,8 @@ const Bugs = () => {
   };
 
   const isPushed = kanban.some(k => k.id === selectedItem?.id);
-  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
-  const isLeadership = ['admin', 'global_admin'].includes(role);
+  const isPrivileged = true;
+  const isLeadership = true;
 
   return (
     <div className="w-full h-[calc(100vh-124px)] flex overflow-hidden">

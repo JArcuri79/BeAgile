@@ -28,7 +28,7 @@ const Header = () => {
     { name: 'Changelog', path: base ? `${base}/changelog` : '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Links', path: base ? `${base}/links` : '/links', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
-  ].filter(link => link.allowedRoles.includes(role));
+  ].filter(() => true);
 
   const homeLink = '/';
 

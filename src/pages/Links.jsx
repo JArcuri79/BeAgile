@@ -89,11 +89,9 @@ const Links = () => {
               >
                 <SafeIcon icon={FiIcons.FiDownload} />
               </button>
-              {(role === 'crew' || role === 'admin' || role === 'global_admin') && (
-                <button onClick={() => { setIsAdding(true); setSelectedLink(null); }} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
-                  <SafeIcon icon={FiIcons.FiPlus} /> NEW
-                </button>
-              )}
+              <button onClick={() => { setIsAdding(true); setSelectedLink(null); }} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
+                <SafeIcon icon={FiIcons.FiPlus} /> NEW
+              </button>
             </div>
           </div>
           <div className="space-y-4">

@@ -13,8 +13,8 @@ const Roadmap = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
 
-  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
-  const isLeadership = ['admin', 'global_admin'].includes(role);
+  const isPrivileged = true;
+  const isLeadership = true;
 
   const filteredRoadmap = useMemo(() => {
     return roadmap.filter(item => {
