@@ -36,10 +36,13 @@ const Dashboard = () => {
   const donutOption = {
     tooltip: { trigger: 'item' },
     legend: { orient: 'vertical', right: '0%', top: 'center', textStyle: { color: textColor, fontSize: 12 } },
+    title: donutTotal
+      ? undefined
+      : { text: '0', left: 'center', top: 'center', textStyle: { color: textColor, fontSize: 48, fontWeight: 900 } },
     series: [{
       name: 'Status',
       type: 'pie',
-      radius: ['50%', '80%'],
+      radius: donutTotal ? ['50%', '80%'] : ['45%', '75%'],
       center: ['35%', '50%'],
       avoidLabelOverlap: false,
       itemStyle: { borderRadius: 8, borderColor: isDark ? '#000000' : '#fff', borderWidth: 4 },
@@ -122,11 +125,7 @@ const Dashboard = () => {
     ]
   };
 
-  const placeholder = (text) => (
-    <div className="h-[350px] flex items-center justify-center text-[var(--text-muted)] font-bold">
-      {text}
-    </div>
-  );
+
 
   return (
     <div className="w-full p-8 space-y-8 bg-[var(--bg-main)] min-h-screen">
@@ -177,11 +176,11 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         <div className="lg:col-span-5 bg-[var(--bg-card)] p-8 rounded-3xl border border-[var(--border-color)] shadow-sm">
           <h3 className="text-xl font-black uppercase tracking-tighter mb-8 text-[var(--text-main)]">Submissions</h3>
-          {donutTotal ? <ReactECharts option={donutOption} style={{ height: '350px' }} /> : placeholder('No submissions yet')}
+          <ReactECharts option={donutOption} style={{ height: '350px' }} />
         </div>
         <div className="lg:col-span-7 bg-[var(--bg-card)] p-8 rounded-3xl border border-[var(--border-color)] shadow-sm">
           <h3 className="text-xl font-black uppercase tracking-tighter mb-8 text-[var(--text-main)]">Velocity</h3>
-          {kanban.length ? <ReactECharts option={lineOption} style={{ height: '350px' }} /> : placeholder('No velocity data yet')}
+          <ReactECharts option={lineOption} style={{ height: '350px' }} />
         </div>
       </div>
 
