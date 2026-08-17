@@ -59,7 +59,7 @@ const NavigationMenu = ({ isOpen, onClose }) => {
     onClose();
     if (isAuthenticated) {
       logout();
-      navigate('/login');
+      navigate('/', { replace: true });
     } else {
       navigate('/login');
     }
