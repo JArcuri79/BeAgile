@@ -83,8 +83,9 @@ const Bugs = () => {
   };
 
   const isPushed = kanban.some(k => k.id === selectedItem?.id);
-  const isPrivileged = true;
-  const isLeadership = true;
+  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
+  const isLeadership = ['admin', 'global_admin'].includes(role);
+  const canAdd = ['user', 'crew', 'admin', 'global_admin'].includes(role);
 
   return (
     <div className="w-full h-[calc(100vh-124px)] flex overflow-hidden">
@@ -106,9 +107,9 @@ const Bugs = () => {
                   <SafeIcon icon={FiIcons.FiDownload} />
                 </button>
               )}
-              {isPrivileged && (
+              {canAdd && (
                 <button onClick={() => setIsAdding(true)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
-                  <SafeIcon icon={FiIcons.FiPlus} /> NEW
+                  <SafeIcon icon={FiIcons.FiPlus} /> Add
                 </button>
               )}
             </div>

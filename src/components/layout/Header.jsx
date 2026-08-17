@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -21,6 +21,7 @@ const Header = () => {
 
   const base = companySlug && workspaceSlug ? `/${companySlug}/${workspaceSlug}` : '';
   const canSwitchWorkspace = currentUser && ['global_admin', 'admin', 'crew'].includes(role);
+  const currentWorkspace = useMemo(() => workspaces.find(w => w.slug === workspaceSlug && w.company_slug === companySlug), [workspaces, workspaceSlug, companySlug]);
 
   useEffect(() => {
     if (!canSwitchWorkspace) return;
@@ -42,13 +43,13 @@ const Header = () => {
     { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
+    { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'My List', path: base ? `${base}/my-list` : '/my-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Kanban', path: base ? `${base}/kanban` : '/kanban', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Changelog', path: base ? `${base}/changelog` : '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
     { name: 'Links', path: base ? `${base}/links` : '/links', allowedRoles: ['crew', 'admin', 'global_admin'] },
     { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
-  ].filter(() => true);
+  ].filter(link => link.allowedRoles.includes(role));
 
   const homeLink = '/';
 
@@ -117,14 +118,17 @@ const Header = () => {
               )}
             </NavLink>
           ))}
-          {canSwitchWorkspace && workspaces.length > 0 && (
+          {canSwitchWorkspace && (
             <div className="relative h-full flex items-center" ref={dropdownRef}>
               <button onClick={() => setDropdownOpen(!dropdownOpen)} className="h-full flex items-center gap-1 text-sm font-bold tracking-tight text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">
-                <span>Workspaces</span>
+                <span>{currentWorkspace?.name || 'Select project'}</span>
                 <SafeIcon icon={dropdownOpen ? FiIcons.FiChevronUp : FiIcons.FiChevronDown} />
               </button>
               {dropdownOpen && (
-                <div className="absolute top-full right-0 mt-1 w-56 max-h-80 overflow-y-auto bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl z-50 py-2">
+                <div className="absolute top-full right-0 mt-1 w-64 max-h-80 overflow-y-auto bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl z-50 py-2">
+                  {workspaces.length === 0 && (
+                    <div className="px-4 py-2 text-xs text-[var(--text-muted)]">No projects found</div>
+                  )}
                   {workspaces.map(w => (
                     <NavLink
                       key={w.id}
@@ -135,6 +139,15 @@ const Header = () => {
                       {w.name}
                     </NavLink>
                   ))}
+                  {['admin', 'global_admin'].includes(role) && (
+                    <NavLink
+                      to={role === 'global_admin' && !companySlug ? '/projects' : `/${companySlug || 'projects'}/projects`}
+                      onClick={() => setDropdownOpen(false)}
+                      className="block px-4 py-2 text-xs font-bold text-[var(--accent)] border-t border-[var(--border-color)] hover:bg-[var(--bg-main)]"
+                    >
+                      + Create workspace
+                    </NavLink>
+                  )}
                 </div>
               )}
             </div>

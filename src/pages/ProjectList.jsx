@@ -63,7 +63,7 @@ const ProjectList = () => {
     document.body.removeChild(link);
   };
 
-  const isPrivileged = true;
+  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
 
   return (
     <div className="w-full h-[calc(100vh-124px)] flex overflow-hidden">
@@ -121,9 +121,11 @@ const ProjectList = () => {
                     <h2 className="text-4xl font-black tracking-tighter">{selectedItem.title}</h2>
                     <p className="text-[var(--text-muted)] text-xl leading-relaxed max-w-3xl">This item is ready for development. Assign it to yourself to start working.</p>
                   </div>
-                  <button onClick={() => { assignToMe(selectedItem.id); setSelectedItem(null); }} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-8 py-4 rounded-2xl font-black shadow-xl hover:scale-[1.02] transition-all" >
-                    Push to My List
-                  </button>
+                  {isPrivileged && (
+                    <button onClick={() => { assignToMe(selectedItem.id); setSelectedItem(null); }} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-8 py-4 rounded-2xl font-black shadow-xl hover:scale-[1.02] transition-all" >
+                      Push to My List
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>

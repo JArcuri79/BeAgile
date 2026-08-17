@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import { useWorkspace } from './WorkspaceContext';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext();
 
@@ -58,6 +59,7 @@ export const DataProvider = ({ children }) => {
   const [changelog, setChangelog] = useState(initialChangelog);
   const [links, setLinks] = useState([]);
   const [notes, setNotes] = useState([]);
+  const { currentUser } = useAuth();
 
   const updateProjectDates = (id, field, value) => {
     setProjects(projects.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -127,7 +129,7 @@ export const DataProvider = ({ children }) => {
   };
 
   const updateTaskAssignee = (itemId, newAssignee) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, assignee: newAssignee } : k));
-  const assignToMe = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'In Progress', assignee: 'Admin User' } : k));
+  const assignToMe = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'In Progress', assignee: currentUser?.name || 'Admin User', assigneeRole: currentUser?.role || '' } : k));
   const markCompleted = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'Completed' } : k));
   const markReviewed = (itemId) => setKanban(prev => prev.map(k => k.id === itemId ? { ...k, column: 'Reviewed' } : k));
   const updateKanbanColumn = (id, newColumn) => setKanban(kanban.map(k => k.id === id ? { ...k, column: newColumn } : k));
@@ -224,7 +226,7 @@ export const useData = () => {
   const filter = (arr) => {
     if (!Array.isArray(arr)) return arr;
     if (!workspaceId) return arr;
-    return arr.filter(item => item && item.workspace_id === workspaceId);
+    return arr.filter(item => item && (item.workspace_id === workspaceId || item.workspace_id === undefined || item.workspace_id === null));
   };
 
   const filtered = {

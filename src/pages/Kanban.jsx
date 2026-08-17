@@ -11,8 +11,8 @@ const Kanban = () => {
   const [selectedItem, setSelectedItem] = useState(null);
   const columns = ['Planned', 'In Progress', 'Completed', 'Reviewed'];
 
-  const isPrivileged = true;
-  const isAdminOnly = true;
+  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
+  const isAdminOnly = ['admin', 'global_admin'].includes(role);
 
   return (
     <div className="w-full h-[calc(100vh-124px)] flex flex-col overflow-hidden">

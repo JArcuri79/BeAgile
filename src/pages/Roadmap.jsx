@@ -22,8 +22,10 @@ const Roadmap = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
 
-  const isPrivileged = true;
-  const isLeadership = true;
+  const isPrivileged = ['crew', 'admin', 'global_admin'].includes(role);
+  const isLeadership = ['admin', 'global_admin'].includes(role);
+  const canAdd = ['user', 'crew', 'admin', 'global_admin'].includes(role);
+  const isPushed = kanban.some(k => k.id === selectedItem?.id);
 
   const filteredRoadmap = useMemo(() => {
     return roadmap.filter(item => {
@@ -91,9 +93,9 @@ const Roadmap = () => {
                   <SafeIcon icon={FiIcons.FiDownload} />
                 </button>
               )}
-              {isPrivileged && (
+              {canAdd && (
                 <button onClick={() => setIsAdding(true)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
-                  <SafeIcon icon={FiIcons.FiPlus} /> NEW
+                  <SafeIcon icon={FiIcons.FiPlus} /> Add
                 </button>
               )}
             </div>
@@ -183,9 +185,16 @@ const Roadmap = () => {
                     <h2 className="text-4xl font-black tracking-tighter">{selectedItem.title}</h2>
                     <p className="text-[var(--text-muted)] text-xl leading-relaxed max-w-3xl">{selectedItem.desc}</p>
                   </div>
-                  <button onClick={() => addToDevList(selectedItem, 'Feature')} className="bg-purple-600 text-white px-8 py-4 rounded-2xl font-black shadow-xl hover:scale-105 transition-all flex items-center gap-3">
-                    <SafeIcon icon={FiIcons.FiArrowRight} /> Push to Project List
-                  </button>
+                  {isPrivileged && (
+                    <button 
+                      onClick={() => addToDevList(selectedItem, 'Feature')} 
+                      disabled={isPushed}
+                      className={`px-8 py-4 rounded-2xl font-black shadow-xl transition-all flex items-center justify-center gap-3 ${isPushed ? 'bg-gray-500 text-white opacity-50 cursor-not-allowed' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+                    >
+                      <SafeIcon icon={isPushed ? FiIcons.FiCheck : FiIcons.FiArrowRight} className="text-xl" />
+                      {isPushed ? 'In Project List' : 'Push to Project List'}
+                    </button>
+                  )}
                 </div>
               </div>
             </motion.div>
