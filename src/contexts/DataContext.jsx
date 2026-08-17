@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { useWorkspace } from './WorkspaceContext';
 
 const DataContext = createContext();
 
@@ -206,4 +207,46 @@ export const DataProvider = ({ children }) => {
   );
 };
 
-export const useData = () => useContext(DataContext);
+export const useData = () => {
+  const ctx = useContext(DataContext);
+  const ws = useWorkspace();
+  const workspaceId = ws?.currentWorkspace?.id;
+
+  const filter = (arr) => {
+    if (!Array.isArray(arr)) return arr;
+    if (!workspaceId) return arr;
+    return arr.filter(item => item && item.workspace_id === workspaceId);
+  };
+
+  const filtered = {
+    projects: filter(ctx.projects),
+    roadmap: filter(ctx.roadmap),
+    bugs: filter(ctx.bugs),
+    kanban: filter(ctx.kanban),
+    changelog: filter(ctx.changelog),
+    links: filter(ctx.links),
+    notes: filter(ctx.notes),
+    companies: filter(ctx.companies),
+    activeProject: null,
+    members: ws?.members || [],
+  };
+
+  filtered.activeProject = filtered.projects.find(p => p.id === ctx.activeProject?.id)
+    || filtered.projects[0]
+    || null;
+
+  const withWorkspace = (item) => ({ ...item, workspace_id: workspaceId });
+
+  return {
+    ...ctx,
+    ...filtered,
+    workspaceId,
+    members: ws?.members || [],
+    addProject: (p) => workspaceId ? ctx.addProject(withWorkspace(p)) : ctx.addProject(p),
+    addKanbanItem: (item) => workspaceId ? ctx.addKanbanItem(withWorkspace(item)) : ctx.addKanbanItem(item),
+    addToDevList: (item, type) => workspaceId ? ctx.addToDevList(withWorkspace(item), type) : ctx.addToDevList(item, type),
+    addNote: (n) => workspaceId ? ctx.addNote(withWorkspace(n)) : ctx.addNote(n),
+    addLink: (l) => workspaceId ? ctx.addLink(withWorkspace(l)) : ctx.addLink(l),
+    addCompany: (c) => workspaceId ? ctx.addCompany({ ...c, id: Date.now() }) : ctx.addCompany(c),
+  };
+};
