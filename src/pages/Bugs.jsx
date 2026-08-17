@@ -7,9 +7,10 @@ import SafeIcon from '../common/SafeIcon';
 
 const Bugs = () => {
   const { role } = useAuth();
-  const { bugs, addToDevList, updateEisenhower, sortDataByEisenhower, kanban } = useData();
-  
+  const { bugs, addBug, addToDevList, updateEisenhower, sortDataByEisenhower, kanban } = useData();
   const [selectedItem, setSelectedItem] = useState(bugs[0]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItem, setNewItem] = useState({ title: '', desc: '', severity: 'High' });
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTag, setSelectedTag] = useState('All');
   const [isEisenhower, setIsEisenhower] = useState(false);
@@ -28,6 +29,13 @@ const Bugs = () => {
     const matchesTag = selectedTag === 'All' || bug.severity === selectedTag || bug.status === selectedTag;
     return matchesSearch && matchesTag;
   });
+
+  const handleAdd = () => {
+    if (!newItem.title.trim()) return;
+    addBug(newItem);
+    setNewItem({ title: '', desc: '', severity: 'High' });
+    setIsAdding(false);
+  };
 
   const handleExportCSV = () => {
     const headers = ['ID', 'Severity', 'Title', 'Description', 'Status'];
@@ -98,6 +106,11 @@ const Bugs = () => {
                   <SafeIcon icon={FiIcons.FiDownload} />
                 </button>
               )}
+              {isPrivileged && (
+                <button onClick={() => setIsAdding(true)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
+                  <SafeIcon icon={FiIcons.FiPlus} /> NEW
+                </button>
+              )}
             </div>
           </div>
           <div className="space-y-4">
@@ -112,6 +125,21 @@ const Bugs = () => {
                 </button>
               ))}
             </div>
+            {isAdding && (
+              <div className="mt-4 space-y-3 p-4 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-color)]">
+                <input type="text" placeholder="Title" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm" />
+                <textarea placeholder="Description" value={newItem.desc} onChange={(e) => setNewItem({ ...newItem, desc: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm h-20" />
+                <select value={newItem.severity} onChange={(e) => setNewItem({ ...newItem, severity: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm">
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+                <div className="flex gap-2">
+                  <button onClick={handleAdd} className="flex-1 bg-[var(--accent)] text-[var(--accent-foreground)] py-2 rounded-xl text-xs font-black">ADD</button>
+                  <button onClick={() => setIsAdding(false)} className="flex-1 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-main)] py-2 rounded-xl text-xs font-black">CANCEL</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
         

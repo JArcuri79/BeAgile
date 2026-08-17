@@ -32,7 +32,9 @@ const ProjectList = () => {
 
   const handleSubmit = () => {
     if (!formData.title.trim()) return;
-    addKanbanItem(formData);
+    const newItem = { ...formData, id: Date.now() };
+    addKanbanItem(newItem);
+    setSelectedItem(newItem);
     setFormData({ title: '', desc: '', type: 'Feature' });
     setIsModalOpen(false);
   };

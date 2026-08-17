@@ -7,7 +7,16 @@ import SafeIcon from '../common/SafeIcon';
 
 const Roadmap = () => {
   const { role } = useAuth();
-  const { roadmap, addToDevList, updateEisenhower, sortDataByEisenhower, kanban } = useData();
+  const { roadmap, addRoadmap, addToDevList, updateEisenhower, sortDataByEisenhower, kanban } = useData();
+  const [isAdding, setIsAdding] = useState(false);
+  const [newItem, setNewItem] = useState({ title: '', desc: '', category: 'Feature' });
+
+  const handleAdd = () => {
+    if (!newItem.title.trim()) return;
+    addRoadmap(newItem);
+    setNewItem({ title: '', desc: '', category: 'Feature' });
+    setIsAdding(false);
+  };
   const [selectedItem, setSelectedItem] = useState(roadmap[0]);
   const [isEisenhower, setIsEisenhower] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -82,12 +91,31 @@ const Roadmap = () => {
                   <SafeIcon icon={FiIcons.FiDownload} />
                 </button>
               )}
+              {isPrivileged && (
+                <button onClick={() => setIsAdding(true)} className="bg-[var(--accent)] text-[var(--accent-foreground)] px-4 py-2 rounded-xl text-xs font-black shadow-lg flex items-center gap-2 hover:scale-105 transition-all">
+                  <SafeIcon icon={FiIcons.FiPlus} /> NEW
+                </button>
+              )}
             </div>
           </div>
           <div className="relative">
             <SafeIcon icon={FiIcons.FiSearch} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input type="text" placeholder="Search features..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-[var(--bg-main)] border border-[var(--border-color)] rounded-xl text-sm" />
           </div>
+          {isAdding && (
+            <div className="mt-4 space-y-3 p-4 bg-[var(--bg-main)] rounded-2xl border border-[var(--border-color)]">
+              <input type="text" placeholder="Title" value={newItem.title} onChange={(e) => setNewItem({ ...newItem, title: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm" />
+              <textarea placeholder="Description" value={newItem.desc} onChange={(e) => setNewItem({ ...newItem, desc: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm h-20" />
+              <select value={newItem.category} onChange={(e) => setNewItem({ ...newItem, category: e.target.value })} className="w-full px-3 py-2 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-xl text-sm">
+                <option value="Feature">Feature</option>
+                <option value="Dev">Dev</option>
+              </select>
+              <div className="flex gap-2">
+                <button onClick={handleAdd} className="flex-1 bg-[var(--accent)] text-[var(--accent-foreground)] py-2 rounded-xl text-xs font-black">ADD</button>
+                <button onClick={() => setIsAdding(false)} className="flex-1 bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-main)] py-2 rounded-xl text-xs font-black">CANCEL</button>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {filteredRoadmap.map(item => (

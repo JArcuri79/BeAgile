@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useMatch } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -8,15 +8,35 @@ import SafeIcon from '../../common/SafeIcon';
 import { motion } from 'framer-motion';
 
 const Header = () => {
-  const { role, switchRole, currentUser } = useAuth();
+  const { role, currentUser } = useAuth();
   const { isDark, toggleTheme, logoUrl, companyName } = useTheme();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const workspaceMatch = useMatch('/:companySlug/:workspaceSlug/*');
   const companySlug = workspaceMatch?.params?.companySlug;
   const workspaceSlug = workspaceMatch?.params?.workspaceSlug;
 
   const base = companySlug && workspaceSlug ? `/${companySlug}/${workspaceSlug}` : '';
+  const canSwitchWorkspace = currentUser && ['global_admin', 'admin', 'crew'].includes(role);
+
+  useEffect(() => {
+    if (!canSwitchWorkspace) return;
+    fetch('/api/workspaces', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.workspaces) setWorkspaces(data.workspaces); })
+      .catch(() => {});
+  }, [canSwitchWorkspace]);
+
+  useEffect(() => {
+    function handleClickOutside(e) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) setDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const navLinks = [
     { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
@@ -97,6 +117,28 @@ const Header = () => {
               )}
             </NavLink>
           ))}
+          {canSwitchWorkspace && workspaces.length > 0 && (
+            <div className="relative h-full flex items-center" ref={dropdownRef}>
+              <button onClick={() => setDropdownOpen(!dropdownOpen)} className="h-full flex items-center gap-1 text-sm font-bold tracking-tight text-[var(--text-muted)] hover:text-[var(--text-main)] transition-all">
+                <span>Workspaces</span>
+                <SafeIcon icon={dropdownOpen ? FiIcons.FiChevronUp : FiIcons.FiChevronDown} />
+              </button>
+              {dropdownOpen && (
+                <div className="absolute top-full right-0 mt-1 w-56 max-h-80 overflow-y-auto bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl shadow-2xl z-50 py-2">
+                  {workspaces.map(w => (
+                    <NavLink
+                      key={w.id}
+                      to={`/${w.company_slug}/${w.slug}`}
+                      onClick={() => setDropdownOpen(false)}
+                      className={({ isActive }) => `block px-4 py-2 text-xs font-bold truncate transition-all ${isActive ? 'text-[var(--accent)] bg-[var(--accent)]/10' : 'text-[var(--text-main)] hover:bg-[var(--bg-main)]'}`}
+                    >
+                      {w.name}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
       </div>
 

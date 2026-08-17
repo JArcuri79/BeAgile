@@ -105,12 +105,20 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  const addRoadmap = (item) => {
+    setRoadmap(prev => [...prev, { ...item, id: Date.now(), status: 'Planned', upvotes: 0, comments: 0, eisenhower: '' }]);
+  };
+
+  const addBug = (item) => {
+    setBugs(prev => [...prev, { ...item, id: Date.now(), status: 'Unverified', upvotes: 0, comments: 0, eisenhower: '' }]);
+  };
+
   const addKanbanItem = (item) => {
     setKanban(prev => [
       ...prev,
       {
         ...item,
-        id: Date.now(),
+        id: item.id || Date.now(),
         column: 'Planned',
         assignee: 'Unassigned',
         type: item.type || 'Task'
@@ -200,7 +208,8 @@ export const DataProvider = ({ children }) => {
       updateEisenhower, sortDataByEisenhower, addToDevList,
       assignToMe, markCompleted, markReviewed, updateTaskAssignee, publishToChangelog, updateKanbanColumn,
       addKanbanItem, addNote, addLink, pushAllReviewedToChangelog,
-      addProject, addCompany, updateCompany, deleteCompany, updateCompanyAllowance
+      addProject, addCompany, updateCompany, deleteCompany, updateCompanyAllowance,
+      addRoadmap, addBug
     }}>
       {children}
     </DataContext.Provider>
@@ -247,6 +256,8 @@ export const useData = () => {
     addToDevList: (item, type) => workspaceId ? ctx.addToDevList(withWorkspace(item), type) : ctx.addToDevList(item, type),
     addNote: (n) => workspaceId ? ctx.addNote(withWorkspace(n)) : ctx.addNote(n),
     addLink: (l) => workspaceId ? ctx.addLink(withWorkspace(l)) : ctx.addLink(l),
+    addRoadmap: (item) => workspaceId ? ctx.addRoadmap(withWorkspace(item)) : ctx.addRoadmap(item),
+    addBug: (item) => workspaceId ? ctx.addBug(withWorkspace(item)) : ctx.addBug(item),
     addCompany: (c) => workspaceId ? ctx.addCompany({ ...c, id: Date.now() }) : ctx.addCompany(c),
   };
 };
