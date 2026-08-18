@@ -41,16 +41,16 @@ const Header = () => {
 
   const navLinks = [
     { name: 'Home', path: '/', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'My List', path: base ? `${base}/my-list` : '/my-list', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Kanban', path: base ? `${base}/kanban` : '/kanban', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Changelog', path: base ? `${base}/changelog` : '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'] },
-    { name: 'Links', path: base ? `${base}/links` : '/links', allowedRoles: ['crew', 'admin', 'global_admin'] },
-    { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'] },
-  ].filter(link => link.allowedRoles.includes(role));
+    { name: 'Dashboard', path: base || '/', allowedRoles: ['crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Roadmap', path: base ? `${base}/roadmap` : '/roadmap', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Bugs Log', path: base ? `${base}/bugs` : '/bugs', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Project List', path: base ? `${base}/project-list` : '/project-list', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'My List', path: base ? `${base}/my-list` : '/my-list', allowedRoles: ['crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Kanban', path: base ? `${base}/kanban` : '/kanban', allowedRoles: ['crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Changelog', path: base ? `${base}/changelog` : '/changelog', allowedRoles: ['guest', 'user', 'crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Links', path: base ? `${base}/links` : '/links', allowedRoles: ['crew', 'admin', 'global_admin'], requiresBase: true },
+    { name: 'Notes', path: base ? `${base}/notes` : '/notes', allowedRoles: ['crew', 'admin', 'global_admin'], requiresBase: true },
+  ].filter(link => link.allowedRoles.includes(role) && (!link.requiresBase || base));
 
   const homeLink = '/';
 
