@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate, useParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../../contexts/AuthContext';
@@ -13,6 +13,26 @@ const NavigationMenu = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { companySlug, workspaceSlug } = useParams();
   const currentUrl = window.location.href;
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(currentUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'BeAgile', url: currentUrl });
+      } catch {
+        // cancelled
+      }
+    } else {
+      handleCopy();
+    }
+  };
 
   const getMenuItems = () => {
     if (role === 'guest' || role === 'user') return [];
@@ -127,7 +147,23 @@ const NavigationMenu = ({ isOpen, onClose }) => {
               </div>
 
               <div className="pt-6 border-t border-[var(--border-color)]">
-                <p className="text-[10px] font-black text-[var(--text-muted)] uppercase px-2 mb-4 tracking-widest">Share Context</p>
+                <div className="flex items-center justify-between px-2 mb-4">
+                  <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-widest">Share</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleCopy}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-main)] text-[10px] font-black hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] hover:border-[var(--accent)] transition-all"
+                    >
+                      <SafeIcon icon={FiIcons.FiCopy} /> {copied ? 'Copied' : 'Copy'}
+                    </button>
+                    <button
+                      onClick={handleShare}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[var(--bg-main)] border border-[var(--border-color)] text-[var(--text-main)] text-[10px] font-black hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] hover:border-[var(--accent)] transition-all"
+                    >
+                      <SafeIcon icon={FiIcons.FiShare2} /> Share
+                    </button>
+                  </div>
+                </div>
                 <div className="bg-white p-6 rounded-2xl flex flex-col items-center gap-4 border border-[var(--border-color)] shadow-inner">
                   <QRCodeSVG value={currentUrl} size={160} fgColor={accentColor} />
                   <div className="w-full">
